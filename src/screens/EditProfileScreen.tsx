@@ -94,7 +94,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   const getProfileImageUrl = (pic?: string | null) => {
     if (!pic) return null;
-    const baseUrl = 'http://172.20.10.2:5000';
+    const baseUrl = 'http://192.168.101.71:5000';
     return pic.startsWith('http') ? pic : `${baseUrl}${pic}`;
   };
 

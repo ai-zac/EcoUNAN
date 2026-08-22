@@ -128,7 +128,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   const getProfileImageUrl = (profilePicture?: string) => {
     if (!profilePicture) return null;
     // Assuming backend is at 172.20.10.2:5000
-    const baseUrl = 'http://172.20.10.2:5000';
+    const baseUrl = 'http://192.168.101.71:5000';
     return profilePicture.startsWith('http') ? profilePicture : `${baseUrl}${profilePicture}`;
   };
 

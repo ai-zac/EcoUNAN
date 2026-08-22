@@ -10,7 +10,7 @@ const getBaseUrl = () => {
   
   // IP Local para dispositivos físicos (Asegúrate de que tu celular y PC estén en la misma red Wi-Fi)
   // Cambia esta IP si tu computadora tiene otra dirección en la red.
-  return 'http://172.20.10.2:5000/api';
+  return 'http://192.168.101.71:5000/api';
 };
 
 export const API_BASE_URL = getBaseUrl();
