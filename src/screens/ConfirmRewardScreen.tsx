@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Gift, Award, Trophy } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { AuthService } from '../api/services/auth.service';
 import { User, Reward } from '../types';
 
 export const ConfirmRewardScreen = ({ route, navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const { reward } = route.params as { reward: Reward };
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -124,17 +128,17 @@ export const ConfirmRewardScreen = ({ route, navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { padding: theme.spacing.m, paddingBottom: 100, alignItems: 'center' },
   header: { marginBottom: 32, marginTop: 40, alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#64748B' },
+  title: { fontSize: 28, fontWeight: '900', color: colors.text, marginBottom: 8 },
+  subtitle: { fontSize: 15, color: colors.textSecondary },
   rewardCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -143,31 +147,31 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   iconBox: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   cardInfo: { flex: 1, justifyContent: 'center' },
-  rewardName: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  rewardDesc: { fontSize: 14, color: '#64748B' },
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 16 },
+  rewardName: { fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  rewardDesc: { fontSize: 14, color: colors.textSecondary },
+  divider: { height: 1, backgroundColor: colors.surface, marginBottom: 16 },
   valueRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  valueLabel: { fontSize: 15, color: '#64748B' },
+  valueLabel: { fontSize: 15, color: colors.textSecondary },
   valuePoints: { fontSize: 16, fontWeight: '900' },
   summaryCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     ...theme.shadows.soft,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  summaryLabel: { fontSize: 16, color: '#64748B' },
-  summaryLabelBold: { fontSize: 16, fontWeight: '900', color: '#0F172A' },
-  summaryValueBlack: { fontSize: 16, fontWeight: '900', color: '#0F172A' },
+  summaryLabel: { fontSize: 16, color: colors.textSecondary },
+  summaryLabelBold: { fontSize: 16, fontWeight: '900', color: colors.text },
+  summaryValueBlack: { fontSize: 16, fontWeight: '900', color: colors.text },
   summaryValueRed: { fontSize: 16, fontWeight: '900', color: '#EF4444' },
   summaryValueGreen: { fontSize: 18, fontWeight: '900', color: '#16A34A' },
   warningText: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 16,
@@ -175,7 +179,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     width: '100%',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
@@ -185,13 +189,13 @@ const styles = StyleSheet.create({
   confirmButtonText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   cancelButton: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonText: { fontSize: 16, fontWeight: '800', color: '#64748B' },
+  cancelButtonText: { fontSize: 16, fontWeight: '800', color: colors.textSecondary },
 });

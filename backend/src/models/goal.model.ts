@@ -7,6 +7,7 @@ export interface IGoal extends Document {
   rewardPoints: number;
   endDate: Date;
   isActive: boolean;
+  claimedBy: mongoose.Schema.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +39,12 @@ const goalSchema: Schema = new Schema(
       type: Boolean,
       default: true,
     },
+    claimedBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,

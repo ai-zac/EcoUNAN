@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Reward from '../models/reward.model';
 import User from '../models/user.model';
@@ -14,7 +14,8 @@ export class RewardController {
       const rewards = await Reward.find({ isActive: true });
       res.status(200).json({ success: true, data: rewards });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -31,38 +32,47 @@ export class RewardController {
         res.status(404).json({ success: false, error: 'Recompensa no encontrada o inactiva' });
         return;
       }
-
       if (reward.stock === 0) {
         res.status(400).json({ success: false, error: 'Recompensa agotada' });
         return;
       }
 
-      const user = await User.findById(userId);
-      if (!user) {
-        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
-        return;
-      }
-
-      if (user.ecoPoints < reward.pointsCost) {
+      // 1) Deduccion de puntos ATOMICA con guarda de saldo suficiente
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: userId, ecoPoints: { $gte: reward.pointsCost } },
+        { $inc: { ecoPoints: -reward.pointsCost } },
+        { new: true }
+      );
+      if (!updatedUser) {
         res.status(400).json({ success: false, error: 'Puntos insuficientes' });
         return;
       }
 
-      // Deduct points
-      user.ecoPoints -= reward.pointsCost;
-      await user.save();
+      // 2) Descuento de stock ATOMICO (solo si queda inventario)
+      let stockOk = true;
+      if (reward.stock !== -1) {
+        const updatedReward = await Reward.findOneAndUpdate(
+          { _id: reward._id, stock: { $gt: 0 } },
+          { $inc: { stock: -1 } },
+          { new: true }
+        );
+        if (!updatedReward) {
+          stockOk = false;
+        }
+      }
 
-      // Update stock if not unlimited (-1)
-      if (reward.stock > 0) {
-        reward.stock -= 1;
-        await reward.save();
+      if (!stockOk) {
+        // Perdio la carrera por el ultimo articulo: reembolso atomico
+        await User.findByIdAndUpdate(userId, { $inc: { ecoPoints: reward.pointsCost } });
+        res.status(400).json({ success: false, error: 'Recompensa agotada' });
+        return;
       }
 
       // Create unique QR code
-      const qrData = `REDEMPTION-${user._id}-${reward._id}-${crypto.randomBytes(4).toString('hex')}`;
+      const qrData = `REDEMPTION-${userId}-${reward._id}-${crypto.randomBytes(8).toString('hex')}`;
 
       const redemption = await Redemption.create({
-        user: user._id as unknown as mongoose.Schema.Types.ObjectId,
+        user: userId as unknown as mongoose.Schema.Types.ObjectId,
         reward: reward._id as unknown as mongoose.Schema.Types.ObjectId,
         pointsSpent: reward.pointsCost,
         status: 'pending',
@@ -73,8 +83,9 @@ export class RewardController {
         success: true,
         data: redemption
       });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      console.error('[redeemReward]', error);
+      res.status(500).json({ success: false, error: 'Error interno al procesar el canje' });
     }
   }
 
@@ -90,7 +101,8 @@ export class RewardController {
       
       res.status(200).json({ success: true, data: redemptions });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -141,9 +153,11 @@ export class RewardController {
 
       res.status(200).json({ success: true, data: {} });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 }
 
 export const rewardController = new RewardController();
+

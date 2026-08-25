@@ -2,10 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import { Check, GlassWater } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export const RecycleSuccessScreen = ({ navigation, route }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const recycleRecord = route.params?.recycle;
   const items = recycleRecord?.items || [];
   const totalPoints = recycleRecord?.totalPoints || 0;
@@ -115,8 +119,8 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { flexGrow: 1, padding: theme.spacing.m, paddingBottom: 40 },
   
   topSection: { alignItems: 'center', marginTop: 60, marginBottom: 40 },
@@ -136,36 +140,36 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   
-  title: { fontSize: 28, fontWeight: '900', color: '#0F172A', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 15, color: '#64748B', textAlign: 'center', lineHeight: 22 },
+  title: { fontSize: 28, fontWeight: '900', color: colors.text, textAlign: 'center', marginBottom: 12 },
+  description: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
 
   detailsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     ...theme.shadows.soft,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  cardTitle: { fontSize: 12, fontWeight: '800', color: '#64748B', letterSpacing: 1 },
+  cardTitle: { fontSize: 12, fontWeight: '800', color: colors.textSecondary, letterSpacing: 1 },
   cardSuccess: { fontSize: 14, fontWeight: '800', color: '#16A34A' },
 
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 16 },
+  divider: { height: 1, backgroundColor: colors.surface, marginBottom: 16 },
 
   itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   itemIconBg: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   itemInfo: { flex: 1 },
-  itemName: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  itemQuantity: { fontSize: 14, color: '#64748B' },
+  itemName: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  itemQuantity: { fontSize: 14, color: colors.textSecondary },
   itemPoints: { fontSize: 18, fontWeight: '900', color: '#16A34A' },
 
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalLabel: { fontSize: 16, fontWeight: '900', color: '#0F172A' },
+  totalLabel: { fontSize: 16, fontWeight: '900', color: colors.text },
   totalPoints: { fontSize: 18, fontWeight: '900', color: '#16A34A' },
 
   actionButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',

@@ -2,9 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Animated, ScrollView } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 
 export const HelpScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -35,12 +39,12 @@ export const HelpScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   title: { ...theme.typography.h3 },
   container: { padding: theme.spacing.m },
   section: { ...theme.typography.h3, marginTop: theme.spacing.l, marginBottom: theme.spacing.s },
-  text: { ...theme.typography.body, color: theme.colors.textSecondary, marginBottom: theme.spacing.s },
+  text: { ...theme.typography.body, color: colors.textSecondary, marginBottom: theme.spacing.s },
 });

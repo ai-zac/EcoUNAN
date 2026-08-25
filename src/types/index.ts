@@ -1,8 +1,14 @@
+export type UserRole = 'user' | 'brigadista' | 'admin' | 'superadmin';
+
 export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: UserRole;
+  isActive?: boolean;
+  studentId?: string;
+  faculty?: string;
+  career?: string;
   ecoPoints: number;
   profilePicture?: string;
 }

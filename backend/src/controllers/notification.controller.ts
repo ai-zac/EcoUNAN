@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import Notification from '../models/notification.model';
 
 export class NotificationController {
@@ -20,7 +20,8 @@ export class NotificationController {
 
       res.status(200).json({ success: true, data: notifications });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -32,7 +33,7 @@ export class NotificationController {
       const notification = await Notification.findById(req.params.id);
       
       if (!notification) {
-        res.status(404).json({ success: false, error: 'Notificación no encontrada' });
+        res.status(404).json({ success: false, error: 'NotificaciÃ³n no encontrada' });
         return;
       }
 
@@ -41,9 +42,11 @@ export class NotificationController {
 
       res.status(200).json({ success: true, data: notification });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 }
 
 export const notificationController = new NotificationController();
+

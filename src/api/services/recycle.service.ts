@@ -15,33 +15,57 @@ export const RecycleService = {
     }
   },
 
-  registerRecycle: async (items: {materialType: string, weight: number}[], photoUri: string, description?: string): Promise<RecycleRecord> => {
+  registerRecycle: async (
+    items: {materialType: string, weight: number}[],
+    photoUri: string | null,
+    description?: string,
+    validationMode: 'photo' | 'inperson' = 'photo'
+  ): Promise<RecycleRecord> => {
     try {
       const formData = new FormData();
       formData.append('items', JSON.stringify(items));
-      
+      formData.append('validationMode', validationMode);
+
       if (description) {
         formData.append('description', description);
       }
-      
-      const filename = photoUri.split('/').pop() || 'photo.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
-      
-      formData.append('proofImage', {
-        uri: photoUri,
-        name: filename,
-        type
-      } as any);
 
-      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/register', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      if (photoUri) {
+        const filename = photoUri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('proofImage', {
+          uri: photoUri,
+          name: filename,
+          type
+        } as any);
+      }
+
+      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/register', formData);
       return response.data.data;
     } catch (error) {
       console.error('Error registering recycle:', error);
+      throw error;
+    }
+  },
+
+  getApprovalQr: async (recycleId: string): Promise<string> => {
+    try {
+      const response = await apiClient.get<{success: boolean, data: {qrData: string}}>(`/recycles/${recycleId}/approval-qr`);
+      return response.data.data.qrData;
+    } catch (error) {
+      console.error('Error getting approval QR:', error);
+      throw error;
+    }
+  },
+
+  confirmPresential: async (qrData: string): Promise<RecycleRecord> => {
+    try {
+      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/confirm-presential', { qrData });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error confirming presential recycle:', error);
       throw error;
     }
   },

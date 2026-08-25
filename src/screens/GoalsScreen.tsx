@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { Leaf, Plus, Award } from 'lucide-react-native';
+import { Leaf, Plus, Award, Gift } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { goalService } from '../api/services/goal.service';
-import { RecycleService } from '../api/services/recycle.service';
-import { Goal, RecycleRecord } from '../types';
+import { useThemeColors } from '../context/ThemeContext';
+import { goalService, GoalProgress } from '../api/services/goal.service';
+import { Goal } from '../types';
 
 export const GoalsScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [recycles, setRecycles] = useState<RecycleRecord[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, GoalProgress>>({});
   const [loading, setLoading] = useState(true);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -17,11 +21,14 @@ export const GoalsScreen = ({ navigation }: any) => {
 
   const fetchData = async () => {
     try {
-      const fetchedGoals = await goalService.getGoals();
+      const [fetchedGoals, progressList] = await Promise.all([
+        goalService.getGoals(),
+        goalService.getMyProgress(),
+      ]);
       setGoals(fetchedGoals);
-      
-      const history = await RecycleService.getHistory();
-      setRecycles(history);
+      const map: Record<string, GoalProgress> = {};
+      progressList.forEach(p => { map[p.goalId] = p; });
+      setProgressMap(map);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudieron cargar las metas');
@@ -30,7 +37,24 @@ export const GoalsScreen = ({ navigation }: any) => {
     }
   };
 
-  const userRecyclesCount = recycles.length;
+  const handleClaim = async (goal: Goal) => {
+    setClaimingId(goal._id);
+    try {
+      const result = await goalService.claimGoal(goal._id);
+      setProgressMap(prev => ({
+        ...prev,
+        [goal._id]: { ...prev[goal._id], claimed: true },
+      }));
+      Alert.alert(
+        '🎉 ¡Meta completada!',
+        `Ganaste +${result.pointsAwarded} puntos. Nuevo saldo: ${result.ecoPoints.toLocaleString()} pts.`
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.error || 'No se pudo reclamar la recompensa');
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -48,11 +72,15 @@ export const GoalsScreen = ({ navigation }: any) => {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : goals.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.textSecondary }}>No hay metas disponibles en este momento.</Text>
+          <Text style={{ textAlign: 'center', marginTop: 40, color: colors.textSecondary }}>No hay metas disponibles en este momento.</Text>
         ) : (
           goals.map((goal) => {
+            const prog = progressMap[goal._id];
+            const userRecyclesCount = prog?.progress ?? 0;
+            const claimed = prog?.claimed ?? false;
+            const isExpired = new Date(goal.endDate).getTime() < Date.now();
             const isCompleted = userRecyclesCount >= goal.targetRecycles;
             const percentage = Math.min((userRecyclesCount / goal.targetRecycles) * 100, 100);
             const remaining = goal.targetRecycles - userRecyclesCount;
@@ -73,9 +101,13 @@ export const GoalsScreen = ({ navigation }: any) => {
                     </View>
                   </View>
 
-                  {isCompleted ? (
+                  {claimed ? (
                     <View style={styles.statusBadgeGreen}>
-                      <Text style={styles.statusBadgeTextGreen}>Completada</Text>
+                      <Text style={styles.statusBadgeTextGreen}>Reclamada ✓</Text>
+                    </View>
+                  ) : isCompleted ? (
+                    <View style={styles.statusBadgeGreen}>
+                      <Text style={styles.statusBadgeTextGreen}>¡Lista para reclamar!</Text>
                     </View>
                   ) : (
                     <View style={styles.statusBadgeOrange}>
@@ -102,6 +134,28 @@ export const GoalsScreen = ({ navigation }: any) => {
                   <Text style={styles.rewardValue}>{goal.description}</Text>
                 </View>
 
+                {isCompleted && !claimed && !isExpired && (
+                  <TouchableOpacity
+                    style={[styles.claimButton, claimingId === goal._id && { opacity: 0.6 }]}
+                    disabled={claimingId === goal._id}
+                    onPress={() => handleClaim(goal)}
+                  >
+                    {claimingId === goal._id ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Gift size={18} color="#FFFFFF" />
+                        <Text style={styles.claimButtonText}>
+                          Reclamar +{goal.rewardPoints.toLocaleString()} pts
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+                {claimed && (
+                  <Text style={styles.claimedNote}>Recompensa ya reclamada para esta meta.</Text>
+                )}
+
               </View>
             );
           })
@@ -121,26 +175,26 @@ export const GoalsScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   header: { marginBottom: 24, marginTop: theme.spacing.m },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: '900', color: '#0F172A' },
-  subtitle: { fontSize: 14, color: '#64748B' },
+  title: { fontSize: 28, fontWeight: '900', color: colors.text },
+  subtitle: { fontSize: 14, color: colors.textSecondary },
   addButton: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#F1F5F9', 
+    backgroundColor: colors.surface, 
     paddingHorizontal: 12, 
     paddingVertical: 6, 
     borderRadius: 20 
   },
-  addButtonText: { fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  addButtonText: { fontSize: 13, fontWeight: '800', color: colors.text },
   goalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -149,36 +203,49 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   iconInfoRow: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   iconBg: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  goalTitle: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: 2 },
+  goalTitle: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 2 },
   goalPoints: { fontSize: 13, fontWeight: '800' },
   statusBadgeGreen: { backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusBadgeTextGreen: { fontSize: 12, fontWeight: '800', color: '#16A34A' },
   statusBadgeOrange: { backgroundColor: '#FFEDD5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusBadgeTextOrange: { fontSize: 12, fontWeight: '800', color: '#D97706' },
-  progressContainer: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
+  progressContainer: { height: 8, backgroundColor: colors.surface, borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
   progressTrack: { flex: 1 },
   progressFill: { height: '100%', backgroundColor: '#16A34A', borderRadius: 4 },
   progressDetailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  progressPercentage: { fontSize: 12, color: '#64748B' },
-  progressValues: { fontSize: 12, fontWeight: '800', color: '#0F172A' },
-  rewardContainer: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12 },
-  rewardLabel: { fontSize: 13, color: '#64748B' },
-  rewardValue: { fontSize: 13, fontWeight: '800', color: '#0F172A', flex: 1 },
+  progressPercentage: { fontSize: 12, color: colors.textSecondary },
+  progressValues: { fontSize: 12, fontWeight: '800', color: colors.text },
+  rewardContainer: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
+  rewardLabel: { fontSize: 13, color: colors.textSecondary },
+  rewardValue: { fontSize: 13, fontWeight: '800', color: colors.text, flex: 1 },
+
+  claimButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 12,
+    gap: 8,
+  },
+  claimButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  claimedNote: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
   exploreSection: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginTop: 8,
     alignItems: 'center',
   },
-  exploreTitle: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
-  exploreSubtitle: { fontSize: 13, color: '#64748B', textAlign: 'center', marginBottom: 16, lineHeight: 20 },
+  exploreTitle: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 8 },
+  exploreSubtitle: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginBottom: 16, lineHeight: 20 },
   exploreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 12,

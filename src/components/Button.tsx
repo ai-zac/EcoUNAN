@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Text, StyleSheet, Animated, Pressable, ViewStyle, TextStyle, PressableProps, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
   title: string;
@@ -22,6 +23,8 @@ export const Button = ({
   onPress,
   ...props
 }: ButtonProps) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = (e: any) => {
@@ -45,16 +48,16 @@ export const Button = ({
   };
 
   const getBackgroundColor = () => {
-    if (disabled) return theme.colors.border;
-    if (variant === 'primary') return theme.colors.primary;
-    if (variant === 'secondary') return theme.colors.surface;
+    if (disabled) return colors.border;
+    if (variant === 'primary') return colors.primary;
+    if (variant === 'secondary') return colors.surface;
     return 'transparent';
   };
 
   const getTextColor = () => {
-    if (disabled) return theme.colors.textSecondary;
-    if (variant === 'primary') return theme.colors.white;
-    return theme.colors.primary;
+    if (disabled) return colors.textSecondary;
+    if (variant === 'primary') return '#FFFFFF';
+    return colors.primary;
   };
 
   return (
@@ -98,7 +101,7 @@ export const Button = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   container: {
     height: 56,
     borderRadius: theme.borderRadius.l,
@@ -109,7 +112,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   text: {
-    ...theme.typography.body,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

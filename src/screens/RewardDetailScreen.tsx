@@ -2,9 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Animated, TouchableOpacity } from 'react-native';
 import { ArrowLeft, Gift, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 
 export const RewardDetailScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const slideAnim = useRef(new Animated.Value(40)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -20,7 +24,7 @@ export const RewardDetailScreen = ({ navigation }: any) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalle de Recompensa</Text>
         <View style={{ width: 40 }} />
@@ -51,15 +55,15 @@ export const RewardDetailScreen = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Términos y condiciones</Text>
           <View style={styles.termsList}>
             <View style={styles.termItem}>
-              <CheckCircle size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <CheckCircle size={16} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.termText}>El canje se realiza en oficinas centrales.</Text>
             </View>
             <View style={styles.termItem}>
-              <CheckCircle size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <CheckCircle size={16} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.termText}>Válido hasta agotar existencias.</Text>
             </View>
             <View style={styles.termItem}>
-              <CheckCircle size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <CheckCircle size={16} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.termText}>Solo un kit por semestre por estudiante.</Text>
             </View>
           </View>
@@ -78,8 +82,8 @@ export const RewardDetailScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...theme.typography.h3 },
@@ -97,18 +101,18 @@ const styles = StyleSheet.create({
   },
   
   infoCard: {
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.white,
     padding: theme.spacing.l,
     borderRadius: theme.borderRadius.m,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     marginBottom: theme.spacing.l,
     ...theme.shadows.soft,
   },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.s },
   title: { ...theme.typography.h2 },
   pointsCost: { fontSize: 16, fontWeight: 'bold', color: '#F59E0B' },
-  description: { ...theme.typography.body, color: theme.colors.textSecondary, marginBottom: theme.spacing.m },
+  description: { ...theme.typography.body, color: colors.textSecondary, marginBottom: theme.spacing.m },
   
   alertBox: { flexDirection: 'row', backgroundColor: '#FEF3C7', padding: theme.spacing.m, borderRadius: 8, alignItems: 'center' },
   alertText: { flex: 1, color: '#B45309', fontWeight: 'bold' },
@@ -116,7 +120,7 @@ const styles = StyleSheet.create({
   sectionTitle: { ...theme.typography.h3, marginBottom: theme.spacing.m },
   termsList: { paddingHorizontal: theme.spacing.s },
   termItem: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.s },
-  termText: { ...theme.typography.body, color: theme.colors.textSecondary },
+  termText: { ...theme.typography.body, color: colors.textSecondary },
 
-  footer: { padding: theme.spacing.m, backgroundColor: theme.colors.white, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  footer: { padding: theme.spacing.m, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
 });

@@ -10,14 +10,16 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 export const usePushNotifications = (userToken?: string) => {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
   const [notification, setNotification] = useState<Notifications.Notification | false>(false);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
   useEffect(() => {
     // Solo pedir permisos e intentar registrar si tenemos una sesión (token de usuario)
@@ -43,10 +45,12 @@ export const usePushNotifications = (userToken?: string) => {
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        (Notifications as any).removeNotificationSubscription?.(notificationListener.current);
+        (notificationListener.current as any)?.remove?.();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        (Notifications as any).removeNotificationSubscription?.(responseListener.current);
+        (responseListener.current as any)?.remove?.();
       }
     };
   }, [userToken]);

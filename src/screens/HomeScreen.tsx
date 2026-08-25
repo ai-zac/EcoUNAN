@@ -2,14 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Animated, Image, Alert } from 'react-native';
 import { Leaf, Gift, Trophy, Activity, ArrowRight, ScanLine, Medal } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 import { userService } from '../api/services/user.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '../types';
+import { User, Reward } from '../types';
 import { RecycleService } from '../api/services/recycle.service';
-import { API_BASE_URL } from '../api/apiClient';
+import { rewardService } from '../api/services/reward.service';
+import { API_BASE_URL, assetUrl } from '../api/apiClient';
 
 export const HomeScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
   const slideAnim1 = useRef(new Animated.Value(30)).current;
   const slideAnim2 = useRef(new Animated.Value(30)).current;
   const slideAnim3 = useRef(new Animated.Value(30)).current;
@@ -21,6 +25,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const [user, setUser] = useState<User | null>(null);
   const [recycleCount, setRecycleCount] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
+  const [nextReward, setNextReward] = useState<Reward | null>(null);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -57,6 +62,17 @@ export const HomeScreen = ({ navigation }: any) => {
       const history = await RecycleService.getHistory();
       setRecycleCount(history.length);
       setTotalWeight(history.reduce((sum, item) => sum + (item.totalWeight || (item as any).weight || 0), 0));
+
+      try {
+        const rewards = await rewardService.getRewards();
+        if (rewards.length > 0) {
+          // Pick the cheapest reward the user can work toward
+          const sorted = [...rewards].sort((a, b) => a.pointsCost - b.pointsCost);
+          setNextReward(sorted[0]);
+        }
+      } catch (e) {
+        // Non-critical — reward card just won't show
+      }
     } catch (error) {
       console.error(error);
     }
@@ -97,7 +113,7 @@ export const HomeScreen = ({ navigation }: any) => {
           </View>
           <TouchableOpacity style={styles.avatar} activeOpacity={0.8} onPress={() => navigation.navigate('Perfil')}>
             {user?.profilePicture ? (
-              <Image source={{ uri: `${API_BASE_URL}${user.profilePicture}` }} style={styles.avatarImage} />
+              <Image source={{ uri: assetUrl(user.profilePicture) ?? undefined }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
             )}
@@ -166,27 +182,37 @@ export const HomeScreen = ({ navigation }: any) => {
           
           <Button 
             title="Ver Ranking EcoUNAN" 
-            icon={<Medal size={20} color={theme.colors.primary} />}
+            icon={<Medal size={20} color={colors.primary} />}
             onPress={() => navigation.navigate('Ranking')} 
-            style={[styles.actionButton, { backgroundColor: '#F1F5F9' }]}
-            textStyle={{ color: theme.colors.primary }}
+            style={[styles.actionButton, { backgroundColor: colors.surface }]}
+            textStyle={{ color: colors.text }}
           />
 
-          <TouchableOpacity style={styles.rewardCard} activeOpacity={0.8} onPress={() => navigation.navigate('RewardDetail')}>
-            <View style={styles.rewardLeft}>
-              <View style={styles.rewardIconBg}>
-                <Gift size={24} color="#F59E0B" />
+          {nextReward && (
+            <TouchableOpacity
+              style={styles.rewardCard}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('ConfirmReward', { reward: nextReward })}
+            >
+              <View style={styles.rewardLeft}>
+                <View style={styles.rewardIconBg}>
+                  <Gift size={24} color={nextReward.iconColor || '#F59E0B'} />
+                </View>
+                <View>
+                  <Text style={styles.rewardTitle}>{nextReward.title}</Text>
+                  <Text style={styles.rewardSubtitle}>
+                    {currentPoints >= nextReward.pointsCost
+                      ? '¡Ya puedes canjearlo!'
+                      : `Te faltan ${nextReward.pointsCost - currentPoints} puntos`}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.rewardTitle}>Kit EcoUNAN</Text>
-                <Text style={styles.rewardSubtitle}>Te faltan 750 puntos</Text>
+              <View style={styles.rewardRight}>
+                <Text style={styles.rewardLink}>Ver</Text>
+                <ArrowRight size={16} color={theme.colors.primary} />
               </View>
-            </View>
-            <View style={styles.rewardRight}>
-              <Text style={styles.rewardLink}>Ver recompensa</Text>
-              <ArrowRight size={16} color={theme.colors.primary} />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         </Animated.View>
 
       </ScrollView>
@@ -194,8 +220,9 @@ export const HomeScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+// Estilos reactivos al modo activo
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
   content: { padding: theme.spacing.m, paddingBottom: 100 },
   header: {
@@ -205,49 +232,49 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.l,
     marginTop: theme.spacing.s,
   },
-  greeting: { ...theme.typography.h2 },
-  subtitle: { ...theme.typography.bodySecondary, marginTop: 2 },
+  greeting: { ...theme.typography.h2, color: colors.text },
+  subtitle: { ...theme.typography.bodySecondary, color: colors.textSecondary, marginTop: 2 },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
-  avatarText: { fontWeight: 'bold', fontSize: 16, color: theme.colors.primary },
+  avatarText: { fontWeight: 'bold', fontSize: 16, color: colors.text },
   avatarImage: { width: 48, height: 48, borderRadius: 24, resizeMode: 'cover' },
   
   pointsCard: {
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.l,
     padding: theme.spacing.l,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     marginBottom: theme.spacing.m,
     ...theme.shadows.soft,
   },
   pointsHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  pointsTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textSecondary },
+  pointsTitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   premiumText: { fontSize: 12, fontWeight: '700', color: '#F59E0B' },
-  pointsValue: { fontSize: 48, fontWeight: '800', color: theme.colors.primary, textAlign: 'center', marginTop: theme.spacing.m },
-  pointsSubtitle: { textAlign: 'center', color: theme.colors.textSecondary, marginBottom: theme.spacing.l },
+  pointsValue: { fontSize: 48, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: theme.spacing.m },
+  pointsSubtitle: { textAlign: 'center', color: colors.textSecondary, marginBottom: theme.spacing.l },
   
   progressContainer: { marginBottom: theme.spacing.m },
-  progressBarBg: { height: 8, backgroundColor: theme.colors.surface, borderRadius: 4, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: theme.colors.primary, borderRadius: 4 },
+  progressBarBg: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: colors.accent, borderRadius: 4 },
   progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  progressLabel: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' },
-  pointsHint: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', marginTop: theme.spacing.s },
+  progressLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  pointsHint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: theme.spacing.s },
 
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.l },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
     alignItems: 'center',
@@ -255,8 +282,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.soft,
   },
   statIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 18, fontWeight: 'bold', color: theme.colors.primary },
-  statLabel: { fontSize: 12, color: theme.colors.textSecondary },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  statLabel: { fontSize: 12, color: colors.textSecondary },
 
   actionButton: { marginBottom: theme.spacing.l, ...theme.shadows.soft },
 
@@ -264,18 +291,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.l,
     ...theme.shadows.soft,
   },
   rewardLeft: { flexDirection: 'row', alignItems: 'center' },
-  rewardIconBg: { width: 48, height: 48, borderRadius: 8, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
-  rewardTitle: { fontWeight: 'bold', fontSize: 16, color: theme.colors.primary },
-  rewardSubtitle: { fontSize: 14, color: theme.colors.textSecondary },
+  rewardIconBg: { width: 48, height: 48, borderRadius: 8, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
+  rewardTitle: { fontWeight: 'bold', fontSize: 16, color: colors.text },
+  rewardSubtitle: { fontSize: 14, color: colors.textSecondary },
   rewardRight: { flexDirection: 'row', alignItems: 'center' },
-  rewardLink: { fontWeight: 'bold', fontSize: 14, color: theme.colors.primary, marginRight: 4 },
+  rewardLink: { fontWeight: 'bold', fontSize: 14, color: colors.text, marginRight: 4 },
 });

@@ -2,8 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 
 export const SplashScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const fadeAnimTitle = useRef(new Animated.Value(0)).current;
   const fadeAnimSubtitle = useRef(new Animated.Value(0)).current;
@@ -36,8 +40,10 @@ export const SplashScreen = ({ navigation }: any) => {
         setTimeout(() => {
           if (token && userStr) {
             const user = JSON.parse(userStr);
-            if (user.role === 'admin') {
+            if (user.role === 'superadmin' || user.role === 'admin') {
               navigation.replace('AdminDashboard');
+            } else if (user.role === 'brigadista') {
+              navigation.replace('AdminRecycles');
             } else {
               navigation.replace('MainTabs');
             }
@@ -73,10 +79,10 @@ export const SplashScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -96,6 +102,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...theme.typography.body,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

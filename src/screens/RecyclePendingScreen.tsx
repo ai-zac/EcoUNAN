@@ -2,9 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
 import { Clock } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { RecycleService } from '../api/services/recycle.service';
 
 export const RecyclePendingScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [isChecking, setIsChecking] = useState(true);
 
@@ -61,7 +65,7 @@ export const RecyclePendingScreen = ({ navigation }: any) => {
           </Text>
 
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loaderText}>Consultando estado...</Text>
           </View>
         </View>
@@ -80,8 +84,8 @@ export const RecyclePendingScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1, padding: theme.spacing.xl, justifyContent: 'space-between' },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   
@@ -91,11 +95,11 @@ const styles = StyleSheet.create({
     padding: 20, 
     borderRadius: 60, 
   },
-  title: { fontSize: 26, fontWeight: '900', textAlign: 'center', color: '#0F172A', marginBottom: 12 },
-  description: { fontSize: 15, color: '#64748B', textAlign: 'center', marginBottom: 40, lineHeight: 22 },
+  title: { fontSize: 26, fontWeight: '900', textAlign: 'center', color: colors.text, marginBottom: 12 },
+  description: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 40, lineHeight: 22 },
   
   loaderContainer: { marginTop: 40, alignItems: 'center' },
-  loaderText: { marginTop: 12, fontSize: 15, color: theme.colors.primary, fontWeight: '600' },
+  loaderText: { marginTop: 12, fontSize: 15, color: colors.primary, fontWeight: '600' },
 
   bottomSection: { gap: 12 },
   
@@ -104,5 +108,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonText: { fontSize: 15, fontWeight: '800', color: '#64748B' },
+  cancelButtonText: { fontSize: 15, fontWeight: '800', color: colors.textSecondary },
 });

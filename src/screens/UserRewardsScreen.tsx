@@ -2,12 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Gift, Award, Trophy } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { userService } from '../api/services/user.service';
 import { AuthService } from '../api/services/auth.service';
 import { Reward } from '../types';
 
 export const UserRewardsScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [rewards, setRewards] = React.useState<Reward[]>([]);
   const [userPoints, setUserPoints] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -68,9 +72,9 @@ export const UserRewardsScreen = ({ navigation }: any) => {
         </View>
 
         {loading ? (
-          <Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.textSecondary }}>Cargando recompensas...</Text>
+          <Text style={{ textAlign: 'center', marginTop: 40, color: colors.textSecondary }}>Cargando recompensas...</Text>
         ) : rewards.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.textSecondary }}>No hay recompensas disponibles en este momento.</Text>
+          <Text style={{ textAlign: 'center', marginTop: 40, color: colors.textSecondary }}>No hay recompensas disponibles en este momento.</Text>
         ) : (
           rewards.map((item) => {
             const isOutOfStock = item.stock === 0;
@@ -119,31 +123,31 @@ export const UserRewardsScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   
   header: { marginBottom: 16, marginTop: theme.spacing.s },
-  title: { fontSize: 26, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#64748B' },
+  title: { fontSize: 26, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.textSecondary },
 
   pointsCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
   },
-  pointsLabel: { fontSize: 13, fontWeight: '800', color: '#64748B', letterSpacing: 1 },
+  pointsLabel: { fontSize: 13, fontWeight: '800', color: colors.textSecondary, letterSpacing: 1 },
   pointsValue: { fontSize: 18, fontWeight: '900', color: '#16A34A' },
 
   rewardCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -152,15 +156,15 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   iconBox: { width: 64, height: 64, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   cardInfo: { flex: 1, alignItems: 'flex-start' },
-  rewardName: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: 2 },
-  rewardDesc: { fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 18 },
+  rewardName: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 2 },
+  rewardDesc: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, lineHeight: 18 },
   pointsBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   pointsBadgeText: { fontSize: 12, fontWeight: '900' },
 
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 16 },
+  divider: { height: 1, backgroundColor: colors.surface, marginVertical: 16 },
 
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  availabilityText: { fontSize: 13, color: '#64748B', flex: 1 },
-  actionButton: { backgroundColor: '#0F172A', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 10 },
+  availabilityText: { fontSize: 13, color: colors.textSecondary, flex: 1 },
+  actionButton: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 10 },
   actionButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
 });

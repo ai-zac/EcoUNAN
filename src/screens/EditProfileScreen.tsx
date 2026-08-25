@@ -3,11 +3,15 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Tex
 import { ArrowLeft, User, Mail, Camera, Book, Briefcase } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 import { userService } from '../api/services/user.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const EditProfileScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -94,7 +98,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   const getProfileImageUrl = (pic?: string | null) => {
     if (!pic) return null;
-    const baseUrl = 'http://192.168.101.71:5000';
+    const baseUrl = 'http://172.20.10.5:5000';
     return pic.startsWith('http') ? pic : `${baseUrl}${pic}`;
   };
 
@@ -108,7 +112,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} disabled={saving}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar perfil</Text>
         <View style={{ width: 40 }} />
@@ -116,7 +120,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <Animated.ScrollView 
@@ -129,7 +133,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
             <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage} disabled={isUploading}>
               <View style={[styles.avatar, { overflow: 'hidden' }]}>
                 {isUploading ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : profilePicture ? (
                   <Image source={{ uri: getProfileImageUrl(profilePicture) as string }} style={styles.avatarImage} />
                 ) : (
@@ -137,7 +141,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
                 )}
               </View>
               <View style={styles.cameraBtn}>
-                <Camera size={16} color={theme.colors.white} />
+                <Camera size={16} color={colors.white} />
               </View>
             </TouchableOpacity>
           </View>
@@ -147,13 +151,13 @@ export const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nombre completo</Text>
               <View style={styles.inputWrapper}>
-                <User size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
+                <User size={20} color={colors.textSecondary} style={styles.inputIcon} />
                 <TextInput 
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
                   placeholder="Tu nombre completo"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
             </View>
@@ -161,7 +165,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Correo institucional</Text>
               <View style={styles.inputWrapper}>
-                <Mail size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
+                <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
                 <TextInput 
                   style={styles.input}
                   value={email}
@@ -169,7 +173,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   placeholder="Tu correo de la universidad"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
             </View>
@@ -177,13 +181,13 @@ export const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Facultad</Text>
               <View style={styles.inputWrapper}>
-                <Book size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
+                <Book size={20} color={colors.textSecondary} style={styles.inputIcon} />
                 <TextInput 
                   style={styles.input}
                   value={faculty}
                   onChangeText={setFaculty}
                   placeholder="Ej: Ciencias e Ingeniería"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
             </View>
@@ -191,13 +195,13 @@ export const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Carrera</Text>
               <View style={styles.inputWrapper}>
-                <Briefcase size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
+                <Briefcase size={20} color={colors.textSecondary} style={styles.inputIcon} />
                 <TextInput 
                   style={styles.input}
                   value={career}
                   onChangeText={setCareer}
                   placeholder="Ej: Ingeniería en Sistemas"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
             </View>
@@ -205,10 +209,10 @@ export const EditProfileScreen = ({ navigation }: any) => {
             {studentId ? (
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Código Estudiantil (Solo lectura)</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: '#F1F5F9' }]}>
-                  <User size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
+                <View style={[styles.inputWrapper, { backgroundColor: colors.surface }]}>
+                  <User size={20} color={colors.textSecondary} style={styles.inputIcon} />
                   <TextInput 
-                    style={[styles.input, { color: theme.colors.textSecondary }]}
+                    style={[styles.input, { color: colors.textSecondary }]}
                     value={studentId}
                     editable={false}
                   />
@@ -231,8 +235,8 @@ export const EditProfileScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...theme.typography.h3 },
@@ -241,17 +245,17 @@ const styles = StyleSheet.create({
   
   avatarSection: { alignItems: 'center', marginVertical: theme.spacing.xl },
   avatarWrapper: { position: 'relative' },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.colors.border },
+  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.border },
   avatarImage: { width: '100%', height: '100%', borderRadius: 50 },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: theme.colors.primary },
-  cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: theme.colors.background },
+  avatarText: { fontSize: 32, fontWeight: 'bold', color: colors.primary },
+  cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.background },
 
   form: { flex: 1 },
   inputGroup: { marginBottom: theme.spacing.l },
   label: { ...theme.typography.body, fontWeight: 'bold', marginBottom: 8 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.white, borderWidth: 1, borderColor: 'rgba(226, 232, 240, 0.5)', borderRadius: theme.borderRadius.m, paddingHorizontal: theme.spacing.m, ...theme.shadows.soft },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.m, paddingHorizontal: theme.spacing.m, ...theme.shadows.soft },
   inputIcon: { marginRight: theme.spacing.s },
-  input: { flex: 1, height: 50, fontSize: 16, color: theme.colors.text },
+  input: { flex: 1, height: 50, fontSize: 16, color: colors.text },
 
   saveBtn: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.l },
 });

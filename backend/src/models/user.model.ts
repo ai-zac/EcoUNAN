@@ -5,13 +5,16 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'brigadista' | 'admin' | 'superadmin';
+  isActive: boolean;
   ecoPoints: number;
   faculty?: string;
   career?: string;
   studentId?: string;
   profilePicture?: string;
   expoPushToken?: string;
+  resetPasswordCodeHash?: string;
+  resetPasswordExpires?: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -37,8 +40,12 @@ const userSchema: Schema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'brigadista', 'admin', 'superadmin'],
       default: 'user',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     ecoPoints: {
       type: Number,
@@ -62,6 +69,15 @@ const userSchema: Schema = new Schema(
     },
     expoPushToken: {
       type: String,
+      required: false,
+    },
+    resetPasswordCodeHash: {
+      type: String,
+      required: false,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
       required: false,
     },
   },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Ani
 import * as ImagePicker from 'expo-image-picker';
 import { GlassWater, Coffee, FileText, Package, Droplet, Plus, Minus, Camera, QrCode, X } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 import { RecycleService } from '../api/services/recycle.service';
 
@@ -24,6 +25,9 @@ const MATERIALS: Material[] = [
 ];
 
 export const RecycleScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [description, setDescription] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -103,9 +107,29 @@ export const RecycleScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleValidateQR = () => {
-    setModalVisible(false);
-    navigation.navigate('QRScanner');
+  const handleValidateQR = async () => {
+    // Flujo PRESENCIAL: registra sin foto y abre el escaner esperando al brigadista
+    const selected = MATERIALS.filter(m => quantities[m.id] > 0);
+    if (selected.length === 0) {
+      Alert.alert('Sin materiales', 'Selecciona al menos un material antes de continuar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const itemsToRegister = selected.map(item => ({
+        materialType: item.id,
+        weight: quantities[item.id]
+      }));
+
+      await RecycleService.registerRecycle(itemsToRegister, null, description, 'inperson');
+      setModalVisible(false);
+      navigation.navigate('QRScanner', { awaitingApproval: true });
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.error || 'No se pudo registrar la solicitud.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -146,16 +170,16 @@ export const RecycleScreen = ({ navigation }: any) => {
                 {isSelected ? (
                   <View style={styles.stepper}>
                     <TouchableOpacity onPress={() => handleDecrement(item.id)} style={styles.stepperBtn}>
-                      <Minus size={16} color={theme.colors.accent} />
+                      <Minus size={16} color={colors.accent} />
                     </TouchableOpacity>
                     <Text style={styles.stepperQty}>{qty}</Text>
                     <TouchableOpacity onPress={() => handleIncrement(item.id)} style={styles.stepperBtn}>
-                      <Plus size={16} color={theme.colors.accent} />
+                      <Plus size={16} color={colors.accent} />
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => handleIncrement(item.id)} style={styles.addButton}>
-                    <Plus size={20} color={theme.colors.accent} strokeWidth={3} />
+                    <Plus size={20} color={colors.accent} strokeWidth={3} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -238,7 +262,7 @@ export const RecycleScreen = ({ navigation }: any) => {
       {/* Loading Overlay */}
       {isSubmitting && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Enviando evidencia...</Text>
         </View>
       )}
@@ -246,8 +270,8 @@ export const RecycleScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: { padding: theme.spacing.m, paddingTop: theme.spacing.xl },
   title: { ...theme.typography.h1, marginBottom: theme.spacing.s },
   subtitle: { ...theme.typography.bodySecondary, lineHeight: 22 },
@@ -257,43 +281,43 @@ const styles = StyleSheet.create({
 
   materialCard: {
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.white,
     ...theme.shadows.soft,
   },
   materialCardSelected: {
-    borderColor: theme.colors.accent,
+    borderColor: colors.accent,
     backgroundColor: '#F0FDF4',
   },
   materialHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   materialLeft: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
-  materialName: { fontSize: 16, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 2 },
-  materialPoints: { fontSize: 14, color: theme.colors.textSecondary },
+  materialName: { fontSize: 16, fontWeight: 'bold', color: colors.primary, marginBottom: 2 },
+  materialPoints: { fontSize: 14, color: colors.textSecondary },
   
-  addButton: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
+  addButton: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   
-  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.white, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 4, paddingVertical: 2 },
+  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 4, paddingVertical: 2 },
   stepperBtn: { padding: 4 },
-  stepperQty: { fontSize: 16, fontWeight: 'bold', marginHorizontal: 12, color: theme.colors.primary },
+  stepperQty: { fontSize: 16, fontWeight: 'bold', marginHorizontal: 12, color: colors.primary },
 
   materialFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.m, paddingTop: theme.spacing.m, borderTopWidth: 1, borderTopColor: '#BBF7D0' },
-  footerText: { color: theme.colors.textSecondary, fontWeight: '500' },
-  footerPoints: { color: theme.colors.accent, fontWeight: 'bold', fontSize: 16 },
+  footerText: { color: colors.textSecondary, fontWeight: '500' },
+  footerPoints: { color: colors.accent, fontWeight: 'bold', fontSize: 16 },
 
-  bottomBar: { padding: theme.spacing.m, paddingBottom: 100, backgroundColor: theme.colors.white, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  bottomBar: { padding: theme.spacing.m, paddingBottom: 100, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
   
   descriptionContainer: { marginTop: theme.spacing.l },
   textInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
-    color: '#0F172A',
+    color: colors.text,
     fontSize: 15,
     minHeight: 100,
     textAlignVertical: 'top',
@@ -305,7 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -322,13 +346,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.text,
     marginTop: 12,
     marginBottom: 8,
   },
   modalDescription: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -340,7 +364,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 16,
   },
@@ -355,12 +379,12 @@ const styles = StyleSheet.create({
   modalOptionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.text,
     marginBottom: 4,
   },
   modalOptionDesc: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     flexWrap: 'wrap',
   },
   
@@ -375,6 +399,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
 });

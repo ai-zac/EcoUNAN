@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TextInputProps, TouchableOpacity } from 'react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 
 interface InputProps extends TextInputProps {
   label: string;
@@ -8,6 +9,8 @@ interface InputProps extends TextInputProps {
 }
 
 export const Input = ({ label, isPassword, style, ...props }: InputProps) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
   const [secureText, setSecureText] = React.useState(isPassword);
 
   return (
@@ -17,7 +20,7 @@ export const Input = ({ label, isPassword, style, ...props }: InputProps) => {
         <TextInput
           style={[styles.input, style]}
           secureTextEntry={secureText}
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           {...props}
         />
         {isPassword && (
@@ -30,7 +33,7 @@ export const Input = ({ label, isPassword, style, ...props }: InputProps) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   container: {
     marginBottom: theme.spacing.m,
   },
@@ -42,17 +45,17 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.m,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     height: 56,
   },
   input: {
     flex: 1,
     paddingHorizontal: theme.spacing.m,
     fontSize: 16,
-    color: theme.colors.text,
+    color: colors.text,
     height: '100%',
   },
   showButton: {
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   showText: {
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },

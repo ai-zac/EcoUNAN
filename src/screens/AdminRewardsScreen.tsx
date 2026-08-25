@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft, Edit, EyeOff, Power, Trash2, Gift, Award, Trophy } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { Reward } from '../types';
 
 export const AdminRewardsScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -72,9 +76,9 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
         <Text style={styles.sectionTitle}>Recompensas registradas</Text>
         
         {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : rewards.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.textSecondary }}>No hay recompensas.</Text>
+          <Text style={{ textAlign: 'center', marginTop: 40, color: colors.textSecondary }}>No hay recompensas.</Text>
         ) : (
           rewards.map((item) => (
             <View key={item._id} style={styles.rewardCard}>
@@ -119,30 +123,30 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   header: { flexDirection: 'row', alignItems: 'center', padding: theme.spacing.m, paddingTop: theme.spacing.xl },
-  backButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  title: { fontSize: 24, fontWeight: '900', color: '#0F172A', flex: 1 },
-  addButton: { backgroundColor: '#0F172A', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  backButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  title: { fontSize: 24, fontWeight: '900', color: colors.text, flex: 1 },
+  addButton: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   addButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: theme.spacing.m },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: theme.spacing.m },
   rewardCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: theme.spacing.m,
     marginBottom: theme.spacing.m,
     ...theme.shadows.soft,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  rewardName: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  rewardDetails: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  statusBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontWeight: '800', color: '#0F172A' },
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 12 },
+  rewardName: { fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  rewardDetails: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  statusBadge: { backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  statusText: { fontSize: 12, fontWeight: '800', color: colors.text },
+  divider: { height: 1, backgroundColor: colors.surface, marginBottom: 12 },
   actionsRow: { flexDirection: 'row' },
   actionButton: {
     flex: 1,
@@ -150,11 +154,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingVertical: 10,
   },
   actionSpacing: { width: 8 },
   actionIcon: { marginRight: 8 },
-  actionText: { fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  actionText: { fontSize: 13, fontWeight: '800', color: colors.text },
 });

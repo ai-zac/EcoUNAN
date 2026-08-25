@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { AuthService } from '../api/services/auth.service';
 
 export const RegisterScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -146,20 +150,20 @@ export const RegisterScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, padding: theme.spacing.l },
   header: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.l },
   title: { ...theme.typography.h1 },
   form: { marginBottom: theme.spacing.l },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.l, marginTop: theme.spacing.s },
-  checkbox: { width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
-  checkboxActive: { borderColor: theme.colors.accent },
-  checkboxInner: { width: 12, height: 12, backgroundColor: theme.colors.accent, borderRadius: 2 },
-  checkboxText: { color: theme.colors.textSecondary, flex: 1 },
-  linkText: { color: theme.colors.accent, fontWeight: 'bold' },
+  checkbox: { width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
+  checkboxActive: { borderColor: colors.accent },
+  checkboxInner: { width: 12, height: 12, backgroundColor: colors.accent, borderRadius: 2 },
+  checkboxText: { color: colors.textSecondary, flex: 1 },
+  linkText: { color: colors.accent, fontWeight: 'bold' },
   registerButton: { 
-    backgroundColor: theme.colors.primary, 
+    backgroundColor: colors.primary, 
     borderRadius: theme.borderRadius.m, 
     paddingVertical: 16, 
     alignItems: 'center', 
@@ -168,6 +172,6 @@ const styles = StyleSheet.create({
   },
   registerButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 'auto', paddingTop: theme.spacing.xl },
-  footerText: { color: theme.colors.textSecondary },
-  footerLink: { color: theme.colors.accent, fontWeight: 'bold' },
+  footerText: { color: colors.textSecondary },
+  footerLink: { color: colors.accent, fontWeight: 'bold' },
 });

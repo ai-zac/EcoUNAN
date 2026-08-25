@@ -1,36 +1,50 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Animated, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ClipboardCheck, QrCode, Gift, Trash2, FileText, GlassWater, Medal } from 'lucide-react-native';
+import { ClipboardCheck, QrCode, Gift, Trash2, FileText, GlassWater, Medal, Users, Target, ShoppingBag } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { AdminService, DashboardData } from '../api/services/admin.service';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
 export const AdminDashboardScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const statsScale = useRef(new Animated.Value(0.8)).current;
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [token, setToken] = useState<string | undefined>();
+  const [myRole, setMyRole] = useState<string>('admin');
 
   usePushNotifications(token);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
+  const fetchData = async () => {
+    try {
+      const data = await AdminService.getDashboardData();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Failed to load dashboard', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
   useEffect(() => {
     AsyncStorage.getItem('@auth_token').then(t => setToken(t || undefined));
-
-    const fetchData = async () => {
-      try {
-        const data = await AdminService.getDashboardData();
-        setDashboardData(data);
-      } catch (error) {
-        console.error('Failed to load dashboard', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    AsyncStorage.getItem('@user_data')
+      .then(d => { if (d) setMyRole(JSON.parse(d).role || 'admin'); });
 
     fetchData();
 
@@ -52,15 +66,20 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22C55E" />
+        }
+      >
         
         {/* Encabezado */}
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>Panel Principal</Text>
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>ADMIN</Text>
+              <View style={[styles.adminBadge, myRole === 'superadmin' && { backgroundColor: '#7C3AED' }]}>
+                <Text style={styles.adminBadgeText}>{myRole === 'superadmin' ? 'SUPERADMIN' : 'ADMIN'}</Text>
               </View>
             </View>
             <Text style={styles.subtitle}>Resumen de la plataforma EcoUNAN</Text>
@@ -68,7 +87,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         </Animated.View>
 
         {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 50 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
         ) : (
           <>
             {/* Estadísticas */}
@@ -103,7 +122,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                     {getIconForType(item.type)}
                   </View>
                   <View style={styles.activityInfo}>
-                    <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: '#64748B'}}>por {item.user}</Text></Text>
+                    <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: colors.textSecondary}}>por {item.user}</Text></Text>
                     <Text style={styles.activityTime}>{new Date(item.time).toLocaleString()}</Text>
                   </View>
                   <Text style={styles.activityPoints}>{item.points}</Text>
@@ -126,11 +145,28 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
             <Gift size={20} color="#0F172A" />
             <Text style={styles.navButtonText}>Gestionar recompensas</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminGoals')}>
+            <Target size={20} color="#0F172A" />
+            <Text style={styles.navButtonText}>Gestionar metas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRedemptions')}>
+            <ShoppingBag size={20} color="#0F172A" />
+            <Text style={styles.navButtonText}>Canjes realizados</Text>
+          </TouchableOpacity>
           
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminGenerateQR')}>
             <QrCode size={20} color="#0F172A" />
             <Text style={styles.navButtonText}>Generar código QR</Text>
           </TouchableOpacity>
+
+          {myRole === 'superadmin' && (
+            <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminUsers')}>
+              <Users size={20} color="#0F172A" />
+              <Text style={styles.navButtonText}>Gestión de Usuarios</Text>
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Ranking')}>
             <Medal size={20} color="#0F172A" />
@@ -143,39 +179,39 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   
   header: { marginBottom: theme.spacing.xl, marginTop: theme.spacing.l },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
-  title: { fontSize: 26, fontWeight: '900', color: '#0F172A', flex: 1 },
-  adminBadge: { backgroundColor: '#0F172A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginLeft: 8, marginTop: 4 },
-  adminBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
-  subtitle: { fontSize: 15, color: '#64748B' },
+  title: { fontSize: 26, fontWeight: '900', color: colors.text, flex: 1 },
+  adminBadge: { backgroundColor: colors.text, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginLeft: 8, marginTop: 4 },
+  adminBadgeText: { color: colors.white, fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+  subtitle: { fontSize: 15, color: colors.textSecondary },
 
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: theme.spacing.m, marginTop: theme.spacing.s },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: theme.spacing.m, marginTop: theme.spacing.s },
   
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: theme.spacing.xl },
   statCard: { 
     width: '48%', 
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: colors.background, 
     borderWidth: 1, 
-    borderColor: '#E2E8F0', 
+    borderColor: colors.border, 
     borderRadius: 16, 
     padding: theme.spacing.m, 
     marginBottom: 12,
     ...theme.shadows.soft,
   },
-  statLabel: { fontSize: 13, color: '#64748B', fontWeight: '500', marginBottom: 8 },
-  statValue: { fontSize: 24, fontWeight: '900', color: '#0F172A' },
+  statLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginBottom: 8 },
+  statValue: { fontSize: 24, fontWeight: '900', color: colors.text },
 
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: theme.spacing.m,
     marginBottom: 12,
@@ -183,21 +219,21 @@ const styles = StyleSheet.create({
     ...theme.shadows.soft,
   },
   activityIndicator: { position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 4, borderRadius: 2 },
-  activityIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginLeft: 8, marginRight: 12 },
+  activityIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginLeft: 8, marginRight: 12 },
   activityInfo: { flex: 1 },
-  activityAction: { fontSize: 15, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
-  activityTime: { fontSize: 12, color: '#94A3B8' },
-  activityPoints: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  activityAction: { fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 2 },
+  activityTime: { fontSize: 12, color: colors.textSecondary },
+  activityPoints: { fontSize: 15, fontWeight: '800', color: colors.text },
 
   navButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 18,
     marginBottom: 12,
   },
-  navButtonText: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginLeft: 16 },
+  navButtonText: { fontSize: 16, fontWeight: '800', color: colors.text, marginLeft: 16 },
 });

@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Switch, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { Reward } from '../types';
 
 export const AdminEditRewardScreen = ({ route, navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const { rewardId } = route.params || {};
   const isEditing = !!rewardId;
 
@@ -99,7 +103,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.container}>
           
@@ -212,40 +216,40 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   header: { flexDirection: 'row', alignItems: 'center', padding: theme.spacing.m, paddingTop: theme.spacing.xl },
-  backButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  title: { fontSize: 22, fontWeight: '900', color: '#0F172A' },
+  backButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   formGroup: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 8 },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 52,
     fontSize: 16,
-    color: '#0F172A',
+    color: colors.text,
   },
   switchGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
     marginBottom: 32,
   },
-  switchLabel: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
-  switchSubtitle: { fontSize: 12, color: '#64748B' },
+  switchLabel: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 2 },
+  switchSubtitle: { fontSize: 12, color: colors.textSecondary },
   saveButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

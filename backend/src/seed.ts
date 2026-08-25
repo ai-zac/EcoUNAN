@@ -8,6 +8,7 @@ import Goal from './models/goal.model';
 import Notification from './models/notification.model';
 import CampusBin from './models/campusBin.model';
 import Redemption from './models/redemption.model';
+import { signBinQr } from './utils/qr';
 
 dotenv.config();
 
@@ -15,14 +16,14 @@ const daysFromNow = (days: number): Date => new Date(Date.now() + days * 24 * 60
 
 const seedDatabase = async () => {
   try {
-    console.log('⏳ Intentando conectar a MongoDB Atlas...');
+    console.log('Intentando conectar a MongoDB Atlas...');
     console.log('URI:', process.env.MONGO_URI?.replace(/:([^:@]+)@/, ':****@'));
 
     await mongoose.connect(process.env.MONGO_URI as string);
-    console.log('✅ ¡Conexión exitosa a MongoDB!');
+    console.log('Conexion exitosa a MongoDB!');
 
     // Limpiar datos existentes
-    console.log('🧹 Limpiando base de datos...');
+    console.log('Limpiando base de datos...');
     await Promise.all([
       User.deleteMany(),
       Reward.deleteMany(),
@@ -33,9 +34,17 @@ const seedDatabase = async () => {
       Redemption.deleteMany(),
     ]);
 
-    // ─── Usuarios (admin + demos para el ranking) ───
-    console.log('👤 Creando usuarios...');
+    // --- Usuarios (superadmin + staff + demos para el ranking) ---
+    console.log('Creando usuarios...');
     await User.create([
+      {
+        name: 'Super Admin EcoUnan',
+        email: 'superadmin@ecounan.edu.ni',
+        password: 'SuperAdmin2026!',
+        role: 'superadmin',
+        ecoPoints: 0,
+        faculty: 'REC',
+      },
       {
         name: 'Admin EcoUnan',
         email: 'admin@ecounan.edu.ni',
@@ -43,47 +52,56 @@ const seedDatabase = async () => {
         role: 'admin',
         ecoPoints: 1000,
         faculty: 'REC',
-        career: 'Administración',
+        career: 'Administracion',
       },
       {
-        name: 'Ana López',
-        email: 'ana@demo.com',
+        name: 'Brigadista Verde',
+        email: 'brigada@ecounan.edu.ni',
+        password: 'Brigada2026!',
+        role: 'brigadista',
+        ecoPoints: 300,
+        faculty: 'REC',
+        career: 'Gestion Ambiental',
+      },
+      {
+        name: 'Ana Lopez',
+        email: 'ana@demo.com', studentId: '2026-10041A',
         password: 'password123',
         role: 'user',
         ecoPoints: 2450,
         faculty: 'FEC',
-        career: 'Economía',
+        career: 'Economia',
       },
       {
-        name: 'Luis Pérez',
-        email: 'luis@demo.com',
+        name: 'Luis Perez',
+        email: 'luis@demo.com', studentId: '2026-10052B',
         password: 'password123',
         role: 'user',
         ecoPoints: 1980,
         faculty: 'FCNM',
-        career: 'Química',
+        career: 'Quimica',
       },
       {
-        name: 'María González',
-        email: 'maria@demo.com',
+        name: 'Maria Gonzalez',
+        email: 'maria@demo.com', studentId: '2026-10063C',
         password: 'password123',
         role: 'user',
         ecoPoints: 1720,
         faculty: 'FAREM',
-        career: 'Biología',
+        career: 'Biologia',
       },
       {
         name: 'Carlos Ruiz',
-        email: 'carlos@demo.com',
+        email: 'carlos@demo.com', studentId: '2026-10074D',
         password: 'password123',
         role: 'user',
         ecoPoints: 1350,
         faculty: 'FEC',
-        career: 'Contaduría',
+        career: 'Contaduria',
       },
       {
-        name: 'Sofía Hernández',
-        email: 'sofia@demo.com',
+        name: 'Sofia Hernandez',
+        email: 'sofia@demo.com', studentId: '2026-10085E',
         password: 'password123',
         role: 'user',
         ecoPoints: 980,
@@ -91,8 +109,8 @@ const seedDatabase = async () => {
         career: 'Medicina',
       },
       {
-        name: 'Diego Martínez',
-        email: 'diego@demo.com',
+        name: 'Diego Martinez',
+        email: 'diego@demo.com', studentId: '2026-10096F',
         password: 'password123',
         role: 'user',
         ecoPoints: 720,
@@ -101,23 +119,23 @@ const seedDatabase = async () => {
       },
       {
         name: 'Valeria Cruz',
-        email: 'valeria@demo.com',
+        email: 'valeria@demo.com', studentId: '2026-10107G',
         password: 'password123',
         role: 'user',
         ecoPoints: 450,
         faculty: 'FAREM',
-        career: 'Agronomía',
+        career: 'Agronomia',
       },
     ]);
     const users = await User.find({ role: 'user' });
     const admin = await User.findOne({ role: 'admin' });
 
-    // ─── Recompensas (con íconos que espera la app) ───
-    console.log('🎁 Creando recompensas...');
+    // --- Recompensas (con iconos que espera la app) ---
+    console.log('Creando recompensas...');
     await Reward.insertMany([
       {
-        title: 'Bono de Cafetería ($5)',
-        description: 'Canjea tus puntos por un bono válido en la cafetería central',
+        title: 'Bono de Cafeteria ($5)',
+        description: 'Canjea tus puntos por un bono valido en la cafeteria central',
         pointsCost: 500,
         stock: 20,
         isActive: true,
@@ -127,7 +145,7 @@ const seedDatabase = async () => {
       },
       {
         title: 'Camiseta Oficial EcoUnan',
-        description: 'Camiseta ecológica edición especial hecha con materiales reciclados',
+        description: 'Camiseta ecologica edicion especial hecha con materiales reciclados',
         pointsCost: 1000,
         stock: 15,
         isActive: true,
@@ -137,7 +155,7 @@ const seedDatabase = async () => {
       },
       {
         title: 'Termo Reutilizable',
-        description: 'Termo de acero inoxidable libre de plástico',
+        description: 'Termo de acero inoxidable libre de plastico',
         pointsCost: 750,
         stock: 10,
         isActive: true,
@@ -146,8 +164,8 @@ const seedDatabase = async () => {
         iconBg: '#DBEAFE',
       },
       {
-        title: 'Descuento en Matrícula (10%)',
-        description: 'Aplica un descuento del 10% en tu próxima matrícula universitaria',
+        title: 'Descuento en Matricula (10%)',
+        description: 'Aplica un descuento del 10% en tu proxima matricula universitaria',
         pointsCost: 5000,
         stock: -1,
         isActive: true,
@@ -156,8 +174,8 @@ const seedDatabase = async () => {
         iconBg: '#EDE9FE',
       },
       {
-        title: 'Kit de Libreta Ecológica',
-        description: 'Libreta de papel reciclado + bolígrafo de bambú',
+        title: 'Kit de Libreta Ecologica',
+        description: 'Libreta de papel reciclado + boligrafo de bambu',
         pointsCost: 300,
         stock: 25,
         isActive: true,
@@ -167,12 +185,12 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // ─── Metas / Goals (no hay endpoint para crearlas: solo el seed las llena) ───
-    console.log('🎯 Creando metas...');
+    // --- Metas / Goals ---
+    console.log('Creando metas...');
     await Goal.insertMany([
       {
-        title: 'Semana del Plástico Cero',
-        description: 'Registra al menos 3 reciclajes de plástico esta semana',
+        title: 'Semana del Plastico Cero',
+        description: 'Registra al menos 3 reciclajes de plastico esta semana',
         targetRecycles: 3,
         rewardPoints: 100,
         endDate: daysFromNow(7),
@@ -188,7 +206,7 @@ const seedDatabase = async () => {
       },
       {
         title: 'Reto por Facultades',
-        description: 'La facultad con más kg reciclados gana una actividad de cierre',
+        description: 'La facultad con mas kg reciclados gana una actividad de cierre',
         targetRecycles: 50,
         rewardPoints: 2000,
         endDate: daysFromNow(60),
@@ -196,49 +214,47 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // ─── Notificaciones globales (visibles para todos) ───
-    console.log('🔔 Creando notificaciones...');
+    // --- Notificaciones globales (visibles para todos) ---
+    console.log('Creando notificaciones...');
     await Notification.insertMany([
       {
         user: null,
-        title: '¡Bienvenido a EcoUnan! 🌱',
+        title: 'Bienvenido a EcoUnan!',
         message: 'Gracias por sumarte. Escanea los QR de los basureros inteligentes para ganar puntos.',
         isRead: false,
       },
       {
         user: null,
         title: 'Nueva meta disponible',
-        message: 'Participa en la Semana del Plástico Cero y gana 100 puntos extra.',
+        message: 'Participa en la Semana del Plastico Cero y gana 100 puntos extra.',
         isRead: false,
       },
       {
         user: null,
         title: 'Nuevas recompensas en la tienda',
-        message: 'Ya disponibles: termos, camisetas ecológicas y kits de libretas.',
+        message: 'Ya disponibles: termos, camisetas ecologicas y kits de libretas.',
         isRead: false,
       },
       {
         user: (admin?._id ?? null),
         title: 'Panel de administrador listo',
-        message: 'Puedes validar reciclajes pendientes desde el panel de administración.',
+        message: 'Puedes validar reciclajes pendientes desde el panel de administracion.',
         isRead: false,
       },
     ]);
 
-    // ─── Basureros inteligentes del campus (con QR válidos para scanQR) ───
-    console.log('🗑️ Creando basureros del campus...');
-    const binQr = (material: string, weight: number) =>
-      JSON.stringify({ type: 'eco-unan-qr', material, weight });
+    // --- Basureros inteligentes del campus (QRs firmados con HMAC) ---
+    console.log('Creando basureros del campus...');
 
     await CampusBin.insertMany([
-      { name: 'Basurero Plásticos FAREM', locationDescription: 'Entrada principal FAREM, frente a cafetería', binType: 'plastic', qrCode: binQr('pet', 2), status: 'active' },
-      { name: 'Basurero Aluminio FEC', locationDescription: 'Pasillo central FEC, segundo piso', binType: 'metal', qrCode: binQr('aluminio', 1), status: 'active' },
-      { name: 'Basurero Papel Biblioteca', locationDescription: 'Junto a la entrada de la biblioteca central', binType: 'paper', qrCode: binQr('papel', 3), status: 'active' },
-      { name: 'Basurero Mixto Cancha', locationDescription: 'Esquina noroeste de la cancha multiuso', binType: 'mixed', qrCode: binQr('carton', 2), status: 'active' },
+      { name: 'Basurero Plasticos FAREM', locationDescription: 'Entrada principal FAREM, frente a cafeteria', binType: 'plastic', qrCode: signBinQr('pet', 2), status: 'active' },
+      { name: 'Basurero Aluminio FEC', locationDescription: 'Pasillo central FEC, segundo piso', binType: 'metal', qrCode: signBinQr('aluminio', 1), status: 'active' },
+      { name: 'Basurero Papel Biblioteca', locationDescription: 'Junto a la entrada de la biblioteca central', binType: 'paper', qrCode: signBinQr('papel', 3), status: 'active' },
+      { name: 'Basurero Mixto Cancha', locationDescription: 'Esquina noroeste de la cancha multiuso', binType: 'mixed', qrCode: signBinQr('carton', 2), status: 'active' },
     ]);
 
-    // ─── Historial de reciclajes (registros válidos para historial y dashboard) ───
-    console.log('♻️ Creando registros de reciclaje...');
+    // --- Historial de reciclajes (registros validos para historial y dashboard) ---
+    console.log('Creando registros de reciclaje...');
     const recycleDocs = [
       { u: 0, material: 'pet' as const, w: 2.5, d: 6 },
       { u: 0, material: 'aluminio' as const, w: 1.2, d: 4 },
@@ -268,18 +284,20 @@ const seedDatabase = async () => {
       }))
     );
 
-    console.log('🚀 ¡Base de datos poblada exitosamente!');
-    console.log('────────────────────────────────────────────');
+    console.log('Base de datos poblada exitosamente!');
+    console.log('--------------------------------------------');
     console.log('Colecciones listas: users, rewards, goals, notifications, campusbins, recycles');
+    console.log('SuperAdmin: superadmin@ecounan.edu.ni / SuperAdmin2026!');
     console.log('Admin: admin@ecounan.edu.ni / password123');
-    console.log('Demo : ana@demo.com / password123 (y los demás @demo.com)');
-    console.log('────────────────────────────────────────────');
+    console.log('Brigadista: brigada@ecounan.edu.ni / Brigada2026!');
+    console.log('Demo : ana@demo.com / password123 (y los demas @demo.com)');
+    console.log('--------------------------------------------');
     process.exit(0);
   } catch (error: any) {
-    console.error('❌ Error conectando o poblando la base de datos:');
+    console.error('Error conectando o poblando la base de datos:');
     console.error(error.message);
     if (error.message.includes('querySrv') || error.message.includes('ETIMEDOUT')) {
-      console.error('\n--> CONSEJO: usa la URI sin SRV (shards explícitos) como la del .env actual');
+      console.error('\n--> CONSEJO: usa la URI sin SRV (shards explicitos) como la del .env actual');
     }
     process.exit(1);
   }

@@ -2,8 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Animated, TouchableOpacity } from 'react-native';
 import { Trophy, Gift, Award, QrCode } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 
 export const RewardUnlockedScreen = ({ route, navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const { reward } = route.params || { 
     reward: { 
       name: 'Kit EcoUNAN', 
@@ -89,8 +93,8 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1, padding: theme.spacing.m, justifyContent: 'space-between', alignItems: 'center' },
   
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
@@ -106,14 +110,14 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   
-  title: { fontSize: 32, fontWeight: '900', color: '#0F172A', textAlign: 'center', marginBottom: 12, lineHeight: 36 },
-  description: { fontSize: 15, color: '#64748B', textAlign: 'center', paddingHorizontal: 20, marginBottom: 32, lineHeight: 22 },
+  title: { fontSize: 32, fontWeight: '900', color: colors.text, textAlign: 'center', marginBottom: 12, lineHeight: 36 },
+  description: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 20, marginBottom: 32, lineHeight: 22 },
   
   qrCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
@@ -121,27 +125,27 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 24 },
   smallIconBox: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  rewardName: { fontSize: 16, fontWeight: '900', color: '#0F172A', marginBottom: 2 },
-  rewardSuccessText: { fontSize: 13, color: '#64748B' },
+  rewardName: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 2 },
+  rewardSuccessText: { fontSize: 13, color: colors.textSecondary },
 
   qrPlaceholder: {
     width: 180,
     height: 180,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
 
-  codePill: { backgroundColor: '#F1F5F9', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
-  codePillText: { fontSize: 15, fontWeight: '900', color: '#0F172A', letterSpacing: 1 },
+  codePill: { backgroundColor: colors.surface, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
+  codePillText: { fontSize: 15, fontWeight: '900', color: colors.text, letterSpacing: 1 },
 
   actionButton: {
     width: '100%',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',

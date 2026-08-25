@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Animated } from 'react-native';
 import { Gift, Recycle, Target } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 
 const ONBOARDING_DATA = [
@@ -23,6 +24,9 @@ const ONBOARDING_DATA = [
 ];
 
 export const OnboardingScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const data = ONBOARDING_DATA[currentIndex];
   const Icon = data.icon;
@@ -56,7 +60,7 @@ export const OnboardingScreen = ({ navigation }: any) => {
       <View style={styles.container}>
         <View style={styles.content}>
           <Animated.View style={[styles.iconContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-            <Icon size={80} color={theme.colors.accent} strokeWidth={1.5} />
+            <Icon size={80} color={colors.accent} strokeWidth={1.5} />
           </Animated.View>
           
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -88,10 +92,10 @@ export const OnboardingScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -106,7 +110,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 250,
     height: 250,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -119,7 +123,7 @@ const styles = StyleSheet.create({
   },
   description: {
     ...theme.typography.body,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: theme.spacing.m,
     lineHeight: 24,
@@ -137,11 +141,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     marginHorizontal: 4,
   },
   activeDot: {
     width: 24,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
 });

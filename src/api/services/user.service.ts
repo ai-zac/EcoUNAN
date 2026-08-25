@@ -32,6 +32,15 @@ export const userService = {
     }
   },
 
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      await apiClient.put('/users/password', { currentPassword, newPassword });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error;
+    }
+  },
+
   uploadProfilePicture: async (imageUri: string): Promise<User> => {
     try {
       const formData = new FormData();
@@ -45,11 +54,7 @@ export const userService = {
         type,
       } as any);
 
-      const response = await apiClient.post('/users/profile/picture', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await apiClient.post('/users/profile/picture', formData);
       return response.data.data;
     } catch (error) {
       console.error('Error uploading profile picture:', error);

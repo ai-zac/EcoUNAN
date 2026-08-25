@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { userService } from '../services/user.service';
+import User from '../models/user.model';
 
 export class UserController {
   
@@ -8,7 +9,8 @@ export class UserController {
       const users = await userService.getAllUsers();
       res.status(200).json({ success: true, data: users });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -21,7 +23,12 @@ export class UserController {
       }
       res.status(200).json({ success: true, data: user });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      if (error?.name === 'CastError') {
+        res.status(400).json({ success: false, error: 'Identificador inválido' });
+        return;
+      }
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -56,7 +63,8 @@ export class UserController {
       }
       res.status(200).json({ success: true, data: {} });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -75,7 +83,8 @@ export class UserController {
 
       res.status(200).json({ success: true, data: sortedRanking });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
   // @desc    Get current user profile
@@ -90,7 +99,8 @@ export class UserController {
       }
       res.status(200).json({ success: true, data: user });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -118,7 +128,7 @@ export class UserController {
   public async uploadProfilePicture(req: Request, res: Response): Promise<void> {
     try {
       if (!req.file) {
-        res.status(400).json({ success: false, error: 'No se subió ninguna imagen' });
+        res.status(400).json({ success: false, error: 'No se subiÃ³ ninguna imagen' });
         return;
       }
       
@@ -133,6 +143,51 @@ export class UserController {
       res.status(200).json({ success: true, data: user });
     } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
+    }
+  }
+
+  // @desc    Change own password
+  // @route   PUT /api/users/password
+  // @access  Private (cualquier rol, sobre su propia cuenta)
+  public async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const authUser = (req as any).user;
+
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({ success: false, error: 'Se requieren currentPassword y newPassword' });
+        return;
+      }
+      if (String(newPassword).length < 8) {
+        res.status(400).json({ success: false, error: 'La nueva contraseÃ±a debe tener al menos 8 caracteres' });
+        return;
+      }
+      if (currentPassword === newPassword) {
+        res.status(400).json({ success: false, error: 'La nueva contraseÃ±a debe ser diferente a la actual' });
+        return;
+      }
+
+      // Traer el documento con el hash para poder verificar
+      const user = await User.findById(authUser._id);
+      if (!user) {
+        res.status(404).json({ success: false, error: 'User not found' });
+        return;
+      }
+
+      const isMatch = await user.matchPassword(currentPassword);
+      if (!isMatch) {
+        // 400 (no 401): evita que el interceptor de la app cierre la sesiÃ³n por error de tipeo
+        res.status(400).json({ success: false, error: 'La contraseÃ±a actual es incorrecta' });
+        return;
+      }
+
+      user.password = newPassword;
+      await user.save(); // el pre-save hook la hashea
+
+      res.status(200).json({ success: true, message: 'ContraseÃ±a actualizada correctamente' });
+    } catch (error: any) {
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
@@ -156,9 +211,11 @@ export class UserController {
 
       res.status(200).json({ success: true, data: { expoPushToken: user.expoPushToken } });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('[500]', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 }
 
 export const userController = new UserController();
+

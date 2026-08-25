@@ -1,15 +1,45 @@
+export type ThemeMode = 'light' | 'dark';
+
+// Paletas base: la forma debe ser identica en ambas
+const lightColors = {
+  primary: '#111827',
+  primaryLight: '#1F2937',
+  accent: '#22C55E',
+  background: '#FFFFFF',
+  surface: '#F8FAFC',
+  text: '#111827',
+  textSecondary: '#64748B',
+  border: '#E2E8F0',
+  white: '#FFFFFF',
+  transparent: 'transparent' as const,
+};
+
+const darkColors = {
+  primary: '#111827',     // Botones mantienen contraste con texto blanco
+  primaryLight: '#1F2937',
+  accent: '#22C55E',
+  background: '#0B1220',
+  surface: '#151E2E',
+  text: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  border: '#263244',
+  white: '#FFFFFF',       // Blanco literal en ambos modos (texto sobre botones)
+  transparent: 'transparent' as const,
+};
+
+let mode: ThemeMode = 'light';
+
+type ColorListener = (m: ThemeMode) => void;
+const listeners = new Set<ColorListener>();
+
+/**
+ * Objeto exportado con LA MISMA FORMA que antes (theme.colors.*).
+ * Las propiedades son getters que resuelven al color del modo ACTIVO,
+ * y setThemeMode() muta el modo + notifica a los suscriptores.
+ */
 export const theme = {
-  colors: {
-    primary: '#111827',     // Dark navy for text, buttons
-    primaryLight: '#1F2937',
-    accent: '#22C55E',      // Green for icons, active states
-    background: '#FFFFFF',  // App background
-    surface: '#F8FAFC',     // Light grey for cards
-    text: '#111827',        // Main text
-    textSecondary: '#64748B', // Subtitles, inactive tabs
-    border: '#E2E8F0',
-    white: '#FFFFFF',
-    transparent: 'transparent',
+  get colors() {
+    return mode === 'dark' ? darkColors : lightColors;
   },
   spacing: {
     xs: 4,
@@ -26,33 +56,17 @@ export const theme = {
     xl: 32,
     round: 9999,
   },
+  // Tipografia dinamica: los colores resuelven al modo activo cuando
+  // los estilos se reconstruyen con useStyles(colors)
   typography: {
-    h1: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: '#111827',
-    },
-    h2: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#111827',
-    },
-    h3: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: '#111827',
-    },
-    body: {
-      fontSize: 16,
-      color: '#111827',
-    },
-    bodySecondary: {
-      fontSize: 14,
-      color: '#64748B',
-    },
-    caption: {
-      fontSize: 12,
-      color: '#64748B',
+    get h1() { return { fontSize: 32, fontWeight: 'bold' as const, color: this._active().text }; },
+    get h2() { return { fontSize: 24, fontWeight: 'bold' as const, color: this._active().text }; },
+    get h3() { return { fontSize: 20, fontWeight: '600' as const, color: this._active().text }; },
+    get body() { return { fontSize: 16, color: this._active().text }; },
+    get bodySecondary() { return { fontSize: 14, color: this._active().textSecondary }; },
+    get caption() { return { fontSize: 12, color: this._active().textSecondary }; },
+    _active() {
+      return mode === 'dark' ? darkColors : lightColors;
     },
   },
   shadows: {
@@ -79,5 +93,21 @@ export const theme = {
     },
   },
 } as const;
+
+export function getThemeMode(): ThemeMode {
+  return mode;
+}
+
+export function setThemeMode(next: ThemeMode): void {
+  if (mode === next) return;
+  mode = next;
+  listeners.forEach(l => l(mode));
+}
+
+/** Suscripcion para componentes que necesitan re-renderizar al cambiar el modo */
+export function subscribeTheme(listener: ColorListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
 
 export type Theme = typeof theme;

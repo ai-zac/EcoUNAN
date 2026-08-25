@@ -8,5 +8,9 @@ const router = Router();
 router.use(protect, admin);
 
 router.get('/dashboard', adminController.getDashboardStats);
+router.get('/redemptions', adminController.getAllRedemptions);
+router.get('/signed-qr', adminController.getSignedQr);
+router.put('/redemptions/:id/complete', adminController.completeRedemption);
+router.put('/redemptions/:id/cancel', adminController.cancelRedemption);
 
 export default router;

@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { userService } from '../api/services/user.service';
 import { User } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const RankingScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const insets = useSafeAreaInsets();
   const [ranking, setRanking] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +56,7 @@ export const RankingScreen = ({ navigation }: any) => {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <>
             {/* Podio */}
@@ -61,8 +65,8 @@ export const RankingScreen = ({ navigation }: any) => {
                 {/* 2do Lugar */}
                 {top3[1] && (
                   <View style={[styles.podiumCard, styles.podiumCardSide]}>
-                    <View style={[styles.avatar, { backgroundColor: '#F1F5F9' }]}>
-                      <Text style={[styles.avatarText, { color: '#475569' }]}>{getInitials(top3[1].name)}</Text>
+                    <View style={[styles.avatar, { backgroundColor: colors.surface }]}>
+                      <Text style={[styles.avatarText, { color: colors.text }]}>{getInitials(top3[1].name)}</Text>
                     </View>
                     <Text style={styles.podiumName} numberOfLines={1}>{top3[1].name}</Text>
                     <Text style={styles.podiumPoints}>{top3[1].ecoPoints} puntos</Text>
@@ -132,19 +136,19 @@ export const RankingScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   
   header: { marginBottom: theme.spacing.m, marginTop: theme.spacing.s },
-  title: { fontSize: 26, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#64748B' },
+  title: { fontSize: 26, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.textSecondary },
 
   podiumContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 30, gap: 8 },
   podiumCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
@@ -156,13 +160,13 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   avatarText: { fontSize: 16, fontWeight: '900' },
   
-  podiumName: { fontSize: 13, fontWeight: '800', color: '#0F172A', textAlign: 'center', marginBottom: 2 },
-  podiumPoints: { fontSize: 12, fontWeight: '800', color: '#475569', marginBottom: 12 },
+  podiumName: { fontSize: 13, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 2 },
+  podiumPoints: { fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 12 },
   podiumPointsGold: { fontSize: 12, fontWeight: '900', color: '#D97706', marginBottom: 16 },
   podiumPointsBronze: { fontSize: 12, fontWeight: '900', color: '#C2410C', marginBottom: 12 },
 
-  positionBadgeGray: { backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  positionBadgeTextGray: { fontSize: 11, fontWeight: '800', color: '#475569' },
+  positionBadgeGray: { backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  positionBadgeTextGray: { fontSize: 11, fontWeight: '800', color: colors.text },
   positionBadgeGold: { backgroundColor: '#FEF3C7', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 12 },
   positionBadgeTextGold: { fontSize: 12, fontWeight: '900', color: '#D97706' },
   positionBadgeBronze: { backgroundColor: '#FFEDD5', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
@@ -172,23 +176,23 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 16,
   },
   listItemMe: { backgroundColor: '#DCFCE7', borderColor: '#16A34A' },
   
-  listPosition: { fontSize: 16, fontWeight: '800', color: '#64748B', width: 40 },
-  listTextMe: { color: '#0F172A' },
+  listPosition: { fontSize: 16, fontWeight: '800', color: colors.textSecondary, width: 40 },
+  listTextMe: { color: colors.text },
   
-  listAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  listAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   listAvatarMe: { backgroundColor: '#16A34A' },
-  listAvatarText: { fontSize: 13, fontWeight: '800', color: '#64748B' },
+  listAvatarText: { fontSize: 13, fontWeight: '800', color: colors.textSecondary },
   listAvatarTextMe: { color: '#FFFFFF' },
 
-  listName: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  listPoints: { fontSize: 15, fontWeight: '900', color: '#0F172A' },
+  listName: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
+  listPoints: { fontSize: 15, fontWeight: '900', color: colors.text },
   listPointsMe: { color: '#16A34A' },
 });

@@ -3,11 +3,21 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Ani
 import * as ImagePicker from 'expo-image-picker';
 import { User as UserIcon, Target, Gift, Recycle, Bell, Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
+import { useUnreadCount } from '../hooks/useUnreadCount';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { RecycleService } from '../api/services/recycle.service';
+import { API_BASE_URL } from '../api/apiClient';
 
 import { userService } from '../api/services/user.service';
+
+const getLevelInfo = (points: number) => {
+  if (points < 500) return { level: 'Nivel 1', title: 'Principiante' };
+  if (points < 1000) return { level: 'Nivel 2', title: 'Eco Amigo' };
+  if (points < 2000) return { level: 'Nivel 3', title: 'Reciclador' };
+  return { level: 'Nivel 4', title: 'Eco Hero' };
+};
 
 const MENU_ITEMS = [
   { id: 'edit', title: 'Editar perfil', icon: UserIcon, color: '#3B82F6', bg: '#EFF6FF' },
@@ -20,6 +30,9 @@ const MENU_ITEMS = [
 ];
 
 export const ProfileScreen = ({ navigation }: any) => {
+  const unreadCount = useUnreadCount();
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
   const fadeAnimHeader = useRef(new Animated.Value(0)).current;
   const scaleAnimHeader = useRef(new Animated.Value(0.5)).current;
   const fadeAnimStats = useRef(new Animated.Value(0)).current;
@@ -96,8 +109,8 @@ export const ProfileScreen = ({ navigation }: any) => {
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('@auth_token');
+    await AsyncStorage.removeItem('@user_data');
     navigation.replace('Login');
   };
 
@@ -125,10 +138,11 @@ export const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
+  const levelInfo = getLevelInfo(user?.ecoPoints || 0);
+
   const getProfileImageUrl = (profilePicture?: string) => {
     if (!profilePicture) return null;
-    // Assuming backend is at 172.20.10.2:5000
-    const baseUrl = 'http://192.168.101.71:5000';
+    const baseUrl = API_BASE_URL.replace('/api', '');
     return profilePicture.startsWith('http') ? profilePicture : `${baseUrl}${profilePicture}`;
   };
 
@@ -168,8 +182,8 @@ export const ProfileScreen = ({ navigation }: any) => {
             <Text style={styles.statLabel}>Reciclado</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>Nivel 4</Text>
-            <Text style={styles.statLabel}>Eco Hero</Text>
+            <Text style={styles.statValue}>{levelInfo.level}</Text>
+            <Text style={styles.statLabel}>{levelInfo.title}</Text>
           </View>
         </Animated.View>
 
@@ -196,6 +210,13 @@ export const ProfileScreen = ({ navigation }: any) => {
                 >
                   <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
                     <Icon size={20} color={item.color} />
+                    {item.id === 'notifications' && unreadCount > 0 && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.menuTitle}>{item.title}</Text>
                   <ChevronRight size={20} color={theme.colors.border} />
@@ -224,17 +245,18 @@ export const ProfileScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+// Estilos reactivos al modo activo
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   
   header: { alignItems: 'center', marginBottom: theme.spacing.xl, marginTop: theme.spacing.l },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.m, ...theme.shadows.soft, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.m, ...theme.shadows.soft, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%', borderRadius: 40 },
-  avatarText: { fontSize: 24, fontWeight: 'bold', color: theme.colors.primary },
-  name: { ...theme.typography.h2, marginBottom: 4 },
-  subtitle: { ...theme.typography.bodySecondary },
-  extraInfo: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  avatarText: { fontSize: 24, fontWeight: 'bold', color: colors.text },
+  name: { ...theme.typography.h2, color: colors.text, marginBottom: 4 },
+  subtitle: { ...theme.typography.bodySecondary, color: colors.textSecondary },
+  extraInfo: { fontSize: 14, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
 
   scrollView: { flex: 1 },
 
@@ -248,23 +270,23 @@ const styles = StyleSheet.create({
   statCard: {
     width: '48%',
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     paddingVertical: theme.spacing.m,
     paddingHorizontal: 4,
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.surface,
     ...theme.shadows.soft,
   },
-  statValue: { fontSize: 18, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 4 },
-  statLabel: { fontSize: 10, color: theme.colors.textSecondary, textAlign: 'center' },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  statLabel: { fontSize: 10, color: colors.textSecondary, textAlign: 'center' },
 
   menuContainer: { 
     borderWidth: 1, 
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.l, 
     padding: theme.spacing.m,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.surface,
     ...theme.shadows.soft,
   },
   menuItem: {
@@ -273,5 +295,21 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.m,
   },
   iconBox: { width: 36, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
-  menuTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: theme.colors.primary },
+  unreadBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -7,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    overflow: 'visible',
+  },
+  unreadBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
+  menuTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
 });

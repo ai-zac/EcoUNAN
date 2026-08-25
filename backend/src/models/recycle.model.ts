@@ -10,6 +10,7 @@ export interface IRecycle extends Document {
   totalWeight: number;
   totalPoints: number;
   status: 'pending' | 'validated' | 'rejected';
+  validationMode?: 'photo' | 'inperson';
   proofImage?: string;
   description?: string;
   createdAt: Date;
@@ -53,6 +54,11 @@ const recycleSchema: Schema = new Schema(
       type: String,
       enum: ['pending', 'validated', 'rejected'],
       default: 'pending',
+    },
+    validationMode: {
+      type: String,
+      enum: ['photo', 'inperson'],
+      default: 'photo',
     },
     proofImage: {
       type: String,

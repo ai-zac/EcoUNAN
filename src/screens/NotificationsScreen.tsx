@@ -2,10 +2,15 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft, Bell, Info } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { useThemeColors } from '../context/ThemeContext';
 import { notificationService } from '../api/services/notification.service';
+import { refreshUnreadCount } from '../hooks/useUnreadCount';
 import { Notification } from '../types';
 
 export const NotificationsScreen = ({ navigation }: any) => {
+  const colors = useThemeColors();
+  const styles = useStyles(colors);
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -49,6 +54,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
         newNotifs[index] = { ...newNotifs[index], isRead: true };
         return newNotifs;
       });
+      refreshUnreadCount();
     } catch (error) {
       console.error(error);
     }
@@ -58,7 +64,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notificaciones</Text>
         <View style={{ width: 40 }} />
@@ -66,10 +72,10 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : notifications.length === 0 ? (
           <View style={styles.emptyState}>
-            <Bell size={64} color={theme.colors.border} />
+            <Bell size={64} color={colors.border} />
             <Text style={styles.emptyTitle}>No tienes notificaciones</Text>
           </View>
         ) : (
@@ -88,7 +94,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
                   <Icon size={24} color="#3B82F6" />
                 </View>
                 <View style={styles.textContent}>
-                  <Text style={[styles.title, !notif.isRead && { fontWeight: '900', color: theme.colors.primary }]}>{notif.title}</Text>
+                  <Text style={[styles.title, !notif.isRead && { fontWeight: '900', color: colors.primary }]}>{notif.title}</Text>
                   <Text style={styles.body}>{notif.message}</Text>
                   <Text style={styles.time}>{new Date(notif.createdAt).toLocaleDateString()}</Text>
                 </View>
@@ -109,33 +115,33 @@ export const NotificationsScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...theme.typography.h3 },
   container: { padding: theme.spacing.m },
   notificationCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.white,
     padding: theme.spacing.m,
     borderRadius: theme.borderRadius.m,
     marginBottom: theme.spacing.m,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: colors.border,
     ...theme.shadows.soft,
   },
   unreadCard: {
-    backgroundColor: '#F8FAFC',
-    borderColor: theme.colors.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
   },
   iconBox: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
   textContent: { flex: 1 },
-  title: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text, marginBottom: 4 },
-  body: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 8, lineHeight: 20 },
-  time: { fontSize: 12, color: theme.colors.border, fontWeight: '500' },
+  title: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  body: { fontSize: 14, color: colors.textSecondary, marginBottom: 8, lineHeight: 20 },
+  time: { fontSize: 12, color: colors.border, fontWeight: '500' },
   emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
-  emptyTitle: { marginTop: theme.spacing.m, fontSize: 16, color: theme.colors.textSecondary },
+  emptyTitle: { marginTop: theme.spacing.m, fontSize: 16, color: colors.textSecondary },
   markReadBtn: { padding: 8, alignSelf: 'flex-start' },
-  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.colors.primary },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
 });

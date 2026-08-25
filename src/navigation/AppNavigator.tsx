@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
+import { NavigationContainer, NavigatorScreenParams, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,8 @@ import { Home, Recycle, Medal, Target, User } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUnreadCount } from '../hooks/useUnreadCount';
+import { useThemeMode } from '../context/ThemeContext';
 
 import { theme } from '../theme/theme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -40,11 +42,15 @@ import { AdminRewardsScreen } from '../screens/AdminRewardsScreen';
 import { AdminEditRewardScreen } from '../screens/AdminEditRewardScreen';
 import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
 import { AdminGenerateQRScreen } from '../screens/AdminGenerateQRScreen';
+import { AdminCreateStaffScreen } from '../screens/AdminCreateStaffScreen';
+import { AdminGoalsScreen } from '../screens/AdminGoalsScreen';
+import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
 
 // Pantallas secundarias de perfil
 import { RankingScreen } from '../screens/RankingScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
 import { HelpScreen } from '../screens/HelpScreen';
 
 // 1. Define Param Lists for Type Safety
@@ -67,6 +73,10 @@ export type RootStackParamList = {
   AdminUsers: undefined;
   AdminRewards: undefined;
   AdminRecycles: undefined;
+  AdminGenerateQR: undefined;
+  AdminCreateStaff: undefined;
+  AdminGoals: undefined;
+  AdminRedemptions: undefined;
   RecyclePending: undefined;
   RecycleSuccess: undefined;
   RewardDetail: undefined;
@@ -77,8 +87,10 @@ export type RootStackParamList = {
   ConfirmReward: { reward: any };
   RewardUnlocked: { reward: any };
   MyRewards: undefined;
+  Ranking: undefined;
   Notifications: undefined;
   Settings: undefined;
+  ChangePassword: undefined;
   Help: undefined;
 };
 
@@ -95,6 +107,7 @@ const Tab = createBottomTabNavigator();
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
   const [token, setToken] = React.useState<string | undefined>();
+  const unreadCount = useUnreadCount();
 
   React.useEffect(() => {
     AsyncStorage.getItem('@auth_token').then(t => setToken(t || undefined));
@@ -145,18 +158,38 @@ const MainTabs = () => {
         component={GoalsScreen} 
         options={{ tabBarIcon: ({ color, focused }) => <Target size={24} color={color} strokeWidth={focused ? 2.5 : 2} /> }} 
       />
-      <Tab.Screen 
-        name="Perfil" 
-        component={ProfileScreen} 
-        options={{ tabBarIcon: ({ color, focused }) => <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} /> }} 
+      <Tab.Screen
+        name="Perfil"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} />,
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
+        }}
       />
     </Tab.Navigator>
   );
 };
 
 export const AppNavigator = () => {
+  const { isDark } = useThemeMode();
+  // Chrome de navegacion (tab bar, fondos) responde al modo en vivo
+  const navTheme = isDark
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          primary: theme.colors.accent,
+          background: theme.colors.background,
+          card: theme.colors.surface,
+          text: theme.colors.text,
+          border: theme.colors.border,
+        },
+      }
+    : DefaultTheme;
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      theme={navTheme}>
       <Stack.Navigator 
         id="RootStack"
         initialRouteName="Splash"
@@ -177,6 +210,9 @@ export const AppNavigator = () => {
         <Stack.Screen name="AdminEditReward" component={AdminEditRewardScreen} />
         <Stack.Screen name="AdminRecycles" component={AdminRecyclesScreen} />
         <Stack.Screen name="AdminGenerateQR" component={AdminGenerateQRScreen} />
+        <Stack.Screen name="AdminCreateStaff" component={AdminCreateStaffScreen} />
+        <Stack.Screen name="AdminGoals" component={AdminGoalsScreen} />
+        <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
         
         {/* Pantallas de detalle */}
         <Stack.Screen name="Ranking" component={RankingScreen} />
@@ -194,6 +230,7 @@ export const AppNavigator = () => {
         {/* Pantallas secundarias de soporte */}
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
       </Stack.Navigator>
     </NavigationContainer>
