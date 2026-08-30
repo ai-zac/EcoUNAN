@@ -6,10 +6,18 @@ import { navigationRef } from './navigationRef';
 import { theme } from '../theme/theme';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { AdminUsersScreen } from '../screens/AdminUsersScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
+  Profile: undefined;
+  Perfil: undefined;
+  EditProfile: undefined;
+  AdminUsers: undefined;
+  AdminUser: undefined;
 };
 
 declare global {
@@ -49,7 +57,13 @@ export const AppNavigator = () => {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Perfil" component={ProfileScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+        <Stack.Screen name="AdminUser" component={AdminUsersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
