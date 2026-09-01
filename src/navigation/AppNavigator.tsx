@@ -4,11 +4,19 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useThemeMode } from '../context/ThemeContext';
 import { navigationRef } from './navigationRef';
 import { theme } from '../theme/theme';
-import { LoginScreen } from '../screens/LoginScreen';
+
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { RecycleSuccessScreen } from '../screens/RecycleSuccessScreen';
+import { RecycleScreen } from '../screens/RecycleScreen';
+import { RecyclePendingScreen } from '../screens/RecyclePendingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { LoginScreen } from '../screens/LoginScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
 import { AdminUsersScreen } from '../screens/AdminUsersScreen';
+import { AdminRewardsScreen } from '../screens/AdminRewardsScreen';
+import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
+import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -16,8 +24,15 @@ export type RootStackParamList = {
   Profile: undefined;
   Perfil: undefined;
   EditProfile: undefined;
+  ChangePassword: undefined;
+  Recycle: undefined;
+  Reciclar: undefined;
+  RecyclePending: undefined;
+  RecycleSuccess: { recycle?: any } | undefined;
   AdminUsers: undefined;
-  AdminUser: undefined;
+  AdminRewards: undefined;
+  AdminRedemptions: undefined;
+  AdminRecycles: undefined;
 };
 
 declare global {
@@ -60,10 +75,16 @@ export const AppNavigator = () => {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Perfil" component={ProfileScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="Recycle" component={RecycleScreen} />
+        <Stack.Screen name="Reciclar" component={RecycleScreen} />
+        <Stack.Screen name="RecyclePending" component={RecyclePendingScreen} />
+        <Stack.Screen name="RecycleSuccess" component={RecycleSuccessScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
-        <Stack.Screen name="AdminUser" component={AdminUsersScreen} />
+        <Stack.Screen name="AdminRewards" component={AdminRewardsScreen} />
+        <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
+        <Stack.Screen name="AdminRecycles" component={AdminRecyclesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
