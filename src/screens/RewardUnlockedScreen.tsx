@@ -1,16 +1,17 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Animated, TouchableOpacity } from 'react-native';
-import { Trophy, Gift, Award, QrCode } from 'lucide-react-native';
+import { Trophy, Gift, Award } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
+import QRCode from 'react-native-qrcode-svg';
 
 export const RewardUnlockedScreen = ({ route, navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
 
-  const { reward } = route.params || { 
+  const { reward, redemption } = route.params || { 
     reward: { 
-      name: 'Kit EcoUNAN', 
+      title: 'Kit EcoUNAN', 
       desc: 'Kit ecológico para estudiantes', 
       points: 2000, 
       iconBg: '#FEF3C7', 
@@ -63,17 +64,17 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
                   {getIcon(reward.id, reward.iconColor)}
                 </View>
                 <View>
-                  <Text style={styles.rewardName}>{reward.name}</Text>
+                  <Text style={styles.rewardName}>{reward.title}</Text>
                   <Text style={styles.rewardSuccessText}>Canjeado con éxito</Text>
                 </View>
               </View>
 
               <View style={styles.qrPlaceholder}>
-                <QrCode size={140} color="#0F172A" strokeWidth={1} />
+                <QRCode value={redemption?.qrCodeData || 'NO-DATA'} size={140} color="#0F172A" backgroundColor="transparent" />
               </View>
 
               <View style={styles.codePill}>
-                <Text style={styles.codePillText}>ECO-2026-00125</Text>
+                <Text style={styles.codePillText}>{redemption?.qrCodeData || 'Sin código'}</Text>
               </View>
             </View>
           </Animated.View>

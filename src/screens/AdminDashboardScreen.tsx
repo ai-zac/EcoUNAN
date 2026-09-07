@@ -11,7 +11,6 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
 
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const statsScale = useRef(new Animated.Value(0.8)).current;
@@ -115,19 +114,25 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
             {/* Actividad Reciente */}
             <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
               <Text style={styles.sectionTitle}>Actividad reciente</Text>
-              {dashboardData?.recentActivity?.map((item) => (
-                <View key={item.id} style={styles.activityCard}>
-                  <View style={[styles.activityIndicator, { backgroundColor: item.color }]} />
-                  <View style={styles.activityIconBg}>
-                    {getIconForType(item.type)}
+              {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
+                dashboardData.recentActivity.map((item) => (
+                  <View key={item.id} style={styles.activityCard}>
+                    <View style={[styles.activityIndicator, { backgroundColor: item.color }]} />
+                    <View style={styles.activityIconBg}>
+                      {getIconForType(item.type)}
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: colors.textSecondary}}>por {item.user}</Text></Text>
+                      <Text style={styles.activityTime}>{new Date(item.time).toLocaleString()}</Text>
+                    </View>
+                    <Text style={styles.activityPoints}>{item.points}</Text>
                   </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: colors.textSecondary}}>por {item.user}</Text></Text>
-                    <Text style={styles.activityTime}>{new Date(item.time).toLocaleString()}</Text>
-                  </View>
-                  <Text style={styles.activityPoints}>{item.points}</Text>
+                ))
+              ) : (
+                <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Aún no hay actividad reciente.</Text>
                 </View>
-              ))}
+              )}
             </Animated.View>
           </>
         )}

@@ -5,6 +5,7 @@ import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { Redemption } from '../types';
+import QRCode from 'react-native-qrcode-svg';
 
 export const MyRewardsScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
@@ -54,7 +55,7 @@ export const MyRewardsScreen = ({ navigation }: any) => {
         ) : (
           redemptions.map((redemption) => {
             const reward = redemption.reward as any;
-            const isDelivered = redemption.status === 'delivered';
+            const isDelivered = redemption.status === 'completed';
             
             return (
               <TouchableOpacity 
@@ -110,7 +111,7 @@ export const MyRewardsScreen = ({ navigation }: any) => {
             <Text style={styles.modalSubtitle}>Presenta este QR al administrador para reclamar tu {(selectedReward?.reward as any)?.title}.</Text>
 
             <View style={styles.qrContainer}>
-              <QrCode size={180} color="#0F172A" strokeWidth={1} />
+              <QRCode value={selectedReward?.qrCodeData || 'NO-DATA'} size={160} color="#0F172A" backgroundColor="transparent" />
             </View>
 
             <View style={styles.codePill}>

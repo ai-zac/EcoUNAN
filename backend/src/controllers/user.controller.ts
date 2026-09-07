@@ -168,7 +168,7 @@ export class UserController {
       }
 
       // Traer el documento con el hash para poder verificar
-      const user = await User.findById(authUser._id);
+      const user = await User.findById(authUser._id).select('+password');
       if (!user) {
         res.status(404).json({ success: false, error: 'User not found' });
         return;

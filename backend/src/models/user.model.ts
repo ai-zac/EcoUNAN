@@ -37,6 +37,7 @@ const userSchema: Schema = new Schema(
     password: {
       type: String,
       required: false,
+      select: false,
     },
     role: {
       type: String,
@@ -79,6 +80,7 @@ const userSchema: Schema = new Schema(
     resetPasswordExpires: {
       type: Date,
       required: false,
+      select: false,
     },
   },
   {

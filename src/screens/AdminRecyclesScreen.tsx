@@ -96,8 +96,6 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
     }
   };
 
-  const evidenceUri = assetUrl(selectedItem?.proofImage);
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -186,54 +184,61 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
             <ScrollView style={styles.modalScroll}>
               {selectedItem && (
                 <View style={styles.modalBody}>
-                  <View style={styles.userRow}>
-                    <User size={16} color={colors.textSecondary} />
-                    <Text style={styles.modalSubtitle}>{selectedItem.user?.name || 'Usuario'}</Text>
-                  </View>
+                  {(() => {
+                    const evidenceUri = assetUrl(selectedItem.proofImage);
+                    return (
+                      <>
+                        <View style={styles.userRow}>
+                          <User size={16} color={colors.textSecondary} />
+                          <Text style={styles.modalSubtitle}>{selectedItem.user?.name || 'Usuario'}</Text>
+                        </View>
 
-                  <View style={styles.breakdownBox}>
-                    <Text style={styles.breakdownTitle}>Materiales entregados:</Text>
-                    {((selectedItem.items && selectedItem.items.length > 0)
-                      ? selectedItem.items
-                      : [{ materialType: selectedItem.materialType || 'pet', weight: selectedItem.weight || 0 }]
-                    ).map((i: any, idx: number) => (
-                      <Text key={idx} style={styles.breakdownItem}>• {i.weight}kg de {i.materialType}</Text>
-                    ))}
-                  </View>
+                        <View style={styles.breakdownBox}>
+                          <Text style={styles.breakdownTitle}>Materiales entregados:</Text>
+                          {((selectedItem.items && selectedItem.items.length > 0)
+                            ? selectedItem.items
+                            : [{ materialType: selectedItem.materialType || 'pet', weight: selectedItem.weight || 0 }]
+                          ).map((i: any, idx: number) => (
+                            <Text key={idx} style={styles.breakdownItem}>• {i.weight}kg de {i.materialType}</Text>
+                          ))}
+                        </View>
 
-                  {!!selectedItem.description && (
-                    <View style={styles.descBox}>
-                      <Text style={styles.descTitle}>Descripción adjunta:</Text>
-                      <Text style={styles.descText}>"{selectedItem.description}"</Text>
-                    </View>
-                  )}
+                        {!!selectedItem.description && (
+                          <View style={styles.descBox}>
+                            <Text style={styles.descTitle}>Descripción adjunta:</Text>
+                            <Text style={styles.descText}>"{selectedItem.description}"</Text>
+                          </View>
+                        )}
 
-                  <Text style={styles.evidenceTitle}>Evidencia (Foto):</Text>
-                  {evidenceUri && !imageError ? (
-                    <>
-                      <Image
-                        source={{ uri: evidenceUri }}
-                        style={styles.evidenceImage}
-                        resizeMode="cover"
-                        onError={() => {
-                          setImageError(true);
-                          showToast('No se pudo cargar la imagen de evidencia', 'error');
-                        }}
-                      />
-                      <Text style={styles.evidenceHint}>{evidenceUri}</Text>
-                    </>
-                  ) : (
-                    <View style={styles.noEvidenceBox}>
-                      <ImageOff size={28} color={imageError ? '#EF4444' : colors.textSecondary} />
-                      <Text style={styles.noEvidenceText}>
-                        {imageError
-                          ? 'La imagen no está disponible (archivo perdido o URL inválida).'
-                          : selectedItem.validationMode === 'inperson'
-                          ? 'Entrega presencial: no requiere foto. Verifica físicamente y genera el QR.'
-                          : 'El usuario no adjuntó foto de evidencia.'}
-                      </Text>
-                    </View>
-                  )}
+                        <Text style={styles.evidenceTitle}>Evidencia (Foto):</Text>
+                        {evidenceUri && !imageError ? (
+                          <>
+                            <Image
+                              source={{ uri: evidenceUri }}
+                              style={styles.evidenceImage}
+                              resizeMode="cover"
+                              onError={() => {
+                                setImageError(true);
+                                showToast('No se pudo cargar la imagen de evidencia', 'error');
+                              }}
+                            />
+                            <Text style={styles.evidenceHint}>{evidenceUri}</Text>
+                          </>
+                        ) : (
+                          <View style={styles.noEvidenceBox}>
+                            <ImageOff size={28} color={imageError ? '#EF4444' : colors.textSecondary} />
+                            <Text style={styles.noEvidenceText}>
+                              {imageError
+                                ? 'La imagen no está disponible (archivo perdido o URL inválida).'
+                                : selectedItem.validationMode === 'inperson'
+                                ? 'Entrega presencial: no requiere foto. Verifica físicamente y genera el QR.'
+                                : 'El usuario no adjuntó foto de evidencia.'}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
                 </View>
               )}
             </ScrollView>

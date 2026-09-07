@@ -9,11 +9,10 @@ import { notifyUser } from '../services/notification.service';
 export class AdminController {
   public async getDashboardStats(req: Request, res: Response): Promise<void> {
     try {
-      const totalUsers = await User.countDocuments({ role: 'user' });
+const totalUsers = await User.countDocuments({ role: 'user' });
       const validatedRecycles = await Recycle.countDocuments({ status: 'validated' });
       const activeRewards = await Reward.countDocuments({ isActive: true });
-      // In a real app we'd track redemptions, for now mocking it based on validated
-      const redemptions = Math.floor(validatedRecycles * 0.3);
+      const redemptions = await Redemption.countDocuments();
 
       const recentActivityDocs = await Recycle.find({ status: 'validated' })
         .sort({ createdAt: -1 })
@@ -41,12 +40,6 @@ export class AdminController {
         };
       });
 
-      // If no data, return defaults for the UI to look good
-      const finalActivity = recentActivity.length > 0 ? recentActivity : [
-         { id: 'mock1', action: 'Botella PET', time: new Date().toISOString(), points: '+30 puntos', type: 'plastic', color: '#10B981', user: 'Ana' },
-         { id: 'mock2', action: 'Lata de aluminio', time: new Date().toISOString(), points: '+15 puntos', type: 'metal', color: '#3B82F6', user: 'Luis' }
-      ];
-
       res.status(200).json({
         success: true,
         data: {
@@ -56,7 +49,7 @@ export class AdminController {
             activeRewards,
             redemptions
           },
-          recentActivity: finalActivity
+          recentActivity
         }
       });
     } catch (error: any) {
@@ -106,6 +99,54 @@ export class AdminController {
     }
   }
 
+  // @desc    Escanear QR de redemption y marcar como completado (uso unico)
+  // @route   POST /api/admin/redemptions/scan
+  // @access  Private/Admin
+  public async scanRedemptionQR(req: Request, res: Response): Promise<void> {
+    try {
+      const { qrCodeData } = req.body;
+
+      if (!qrCodeData || typeof qrCodeData !== 'string') {
+        res.status(400).json({ success: false, error: 'qrCodeData es requerido' });
+        return;
+      }
+
+      // Transicion atomica pending -> completed: garantiza uso unico
+      const redemption = await Redemption.findOneAndUpdate(
+        { qrCodeData, status: 'pending' },
+        { status: 'completed' },
+        { new: true }
+      ).populate('reward', 'title pointsCost').populate('user', 'name email');
+
+      if (!redemption) {
+        // Verificar si existe pero ya fue procesado
+        const existing = await Redemption.findOne({ qrCodeData });
+        if (existing) {
+          res.status(409).json({
+            success: false,
+            error: existing.status === 'completed'
+              ? 'Este QR ya fue utilizado y la recompensa fue entregada'
+              : 'Este canje fue cancelado y ya no es válido'
+          });
+          return;
+        }
+        res.status(404).json({ success: false, error: 'QR de canje no encontrado o inválido' });
+        return;
+      }
+
+      await notifyUser(
+        String(redemption.user instanceof Object ? (redemption.user as any)._id : redemption.user),
+        'Canje completado 🎁',
+        '¡Tu recompensa fue entregada! Disfrútala.'
+      );
+
+      res.status(200).json({ success: true, data: redemption });
+    } catch (error) {
+      console.error('[scanRedemptionQR]', error);
+      res.status(500).json({ success: false, error: 'Error interno al escanear el QR' });
+    }
+  }
+
   // @desc    Marcar canje como COMPLETADO (entregado al usuario)
   // @route   PUT /api/admin/redemptions/:id/complete
   // @access  Private/Admin
@@ -124,8 +165,8 @@ export class AdminController {
 
       await notifyUser(
         String(redemption.user),
-        'Canje completado ðŸŽ',
-        'Tu recompensa fue entregada. Â¡DisfrÃºtala!'
+        'Canje completado 🎁',
+        '¡Tu recompensa fue entregada! Disfrútala.'
       );
 
       res.status(200).json({ success: true, data: redemption });
@@ -164,6 +205,12 @@ export class AdminController {
 
       // Devolucion ATOMICA de puntos
       await User.findByIdAndUpdate(redemption.user, { $inc: { ecoPoints: redemption.pointsSpent } });
+
+      // Devolver stock (solo si no es ilimitado)
+      const reward = await Reward.findById(redemption.reward);
+      if (reward && reward.stock !== -1) {
+        await Reward.findByIdAndUpdate(redemption.reward, { $inc: { stock: 1 } });
+      }
 
       await notifyUser(
         String(redemption.user),

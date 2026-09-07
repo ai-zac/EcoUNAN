@@ -50,11 +50,11 @@ export class AuthController {
     }
   }
 
-  public async login(req: Request, res: Response): Promise<void> {
+public async login(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
 
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).select('+password');
 
       if (user && (await user.matchPassword(password))) {
         if (!user.isActive) {
@@ -139,7 +139,7 @@ export class AuthController {
         return;
       }
 
-      const user = await User.findOne({ email: String(email).toLowerCase() }).select('+resetPasswordCodeHash +resetPasswordExpires');
+      const user = await User.findOne({ email: String(email).toLowerCase() }).select('+password +resetPasswordCodeHash +resetPasswordExpires');
       if (!user || !user.resetPasswordCodeHash || !user.resetPasswordExpires) {
         res.status(400).json({ success: false, error: 'CÃ³digo invÃ¡lido o expirado' });
         return;

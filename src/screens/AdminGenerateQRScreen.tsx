@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Modal, Alert, Share } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Modal, Alert, Share, ActivityIndicator } from 'react-native';
 import { ArrowLeft, ChevronDown, X } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
+import { apiClient } from '../api/apiClient';
+import { assetUrl } from '../api/apiClient';
 
 const MATERIALS = [
   { id: 'pet', name: 'Botella PET' },
@@ -20,16 +22,30 @@ export const AdminGenerateQRScreen = ({ navigation }: any) => {
   const [materialIndex, setMaterialIndex] = useState(0);
   const [cantidad, setCantidad] = useState('3');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [qrData, setQrData] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const selectedMaterial = MATERIALS[materialIndex];
-  const points = (Number(cantidad) || 0) * 10;
-  
-  const qrData = JSON.stringify({
-    type: 'eco-unan-qr',
-    material: selectedMaterial.id,
-    weight: Number(cantidad) || 0,
-    timestamp: Date.now()
-  });
+  const points = Math.floor((Number(cantidad) || 0) * 10);
+
+  const generateQr = async () => {
+    setLoading(true);
+    try {
+      const resp = await apiClient.get('/admin/signed-qr', {
+        params: { material: selectedMaterial.id, weight: Number(cantidad) || 0 }
+      });
+      setQrData(resp.data.data.qrData);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'No se pudo generar el QR firmado';
+      Alert.alert('Error', message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    generateQr();
+  }, [materialIndex, cantidad]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -69,7 +85,13 @@ export const AdminGenerateQRScreen = ({ navigation }: any) => {
 
         <View style={styles.qrCard}>
           <View style={styles.qrPlaceholder}>
-            <QRCode value={qrData} size={140} color="#0F172A" backgroundColor="transparent" />
+            {loading ? (
+              <ActivityIndicator size="large" color={colors.primary} />
+            ) : qrData ? (
+              <QRCode value={qrData} size={140} color="#0F172A" backgroundColor="transparent" />
+            ) : (
+              <Text style={styles.qrLoadingText}>Generando QR...</Text>
+            )}
           </View>
           <Text style={styles.qrCodeLabel}>CÓDIGO DE VALIDACIÓN</Text>
           <Text style={styles.qrCodeValue}>{selectedMaterial.id.toUpperCase()}-{cantidad}KG</Text>
@@ -208,6 +230,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   qrCodeLabel: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, letterSpacing: 1, marginBottom: 4 },
   qrCodeValue: { fontSize: 22, fontWeight: '900', color: colors.text, marginBottom: 12 },
   qrHelpText: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  qrLoadingText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
 
   actionButton: {
     alignItems: 'center',

@@ -237,7 +237,7 @@ export class RecycleController {
     }
   }
 
-  // Admin: Validate a recycle action and award points
+// Admin: Validate a recycle action and award points
   public async validateRecycle(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -254,28 +254,28 @@ export class RecycleController {
         return;
       }
 
-      // Award points to the user (ATOMIC)
-      const updatedUser = await User.findByIdAndUpdate(
-        recycle.user,
-        { $inc: { ecoPoints: recycle.totalPoints } },
+      // Transicion atomica: solo se valida si estaba pendiente
+      const validated = await Recycle.findOneAndUpdate(
+        { _id: recycle._id, status: 'pending' },
+        { status: 'validated' },
         { new: true }
       );
-      if (!updatedUser) {
-        res.status(404).json({ success: false, error: 'User not found' });
+      if (!validated) {
+        res.status(409).json({ success: false, error: 'Este registro acaba de ser procesado por otro operador' });
         return;
       }
 
-      recycle.status = 'validated';
-      await recycle.save();
+      // Puntos atomicos
+      await User.findByIdAndUpdate(recycle.user, { $inc: { ecoPoints: recycle.totalPoints } });
 
       // Notificar al usuario (in-app + push)
       await notifyUser(
         String(recycle.user),
-        'Â¡Reciclaje aprobado! â™»ï¸',
-        `Ganaste +${recycle.totalPoints} puntos por tu reciclaje. Â¡Sigue asÃ­!`
+        '¡Reciclaje aprobado! ♻️',
+        `Ganaste +${recycle.totalPoints} puntos por tu reciclaje. ¡Sigue así!`
       );
 
-      res.status(200).json({ success: true, data: recycle });
+      res.status(200).json({ success: true, data: validated });
     } catch (error) {
       console.error('[validateRecycle]', error);
       res.status(500).json({ success: false, error: 'Error interno al validar el reciclaje' });
@@ -299,17 +299,25 @@ export class RecycleController {
         return;
       }
 
-      recycle.status = 'rejected';
-      await recycle.save();
+      // Transicion atomica: solo se rechaza si estaba pendiente
+      const rejected = await Recycle.findOneAndUpdate(
+        { _id: recycle._id, status: 'pending' },
+        { status: 'rejected' },
+        { new: true }
+      );
+      if (!rejected) {
+        res.status(409).json({ success: false, error: 'Este registro acaba de ser procesado por otro operador' });
+        return;
+      }
 
       // Notificar al usuario (in-app + push)
       await notifyUser(
         String(recycle.user),
         'Reciclaje rechazado',
-        'Tu registro de reciclaje no fue aprobado. Verifica la evidencia e intÃ©ntalo de nuevo.'
+        'Tu registro de reciclaje no fue aprobado. Verifica la evidencia e inténtalo de nuevo.'
       );
 
-      res.status(200).json({ success: true, data: recycle });
+      res.status(200).json({ success: true, data: rejected });
     } catch (error) {
       console.error('[rejectRecycle]', error);
       res.status(500).json({ success: false, error: 'Error interno al rechazar el reciclaje' });
