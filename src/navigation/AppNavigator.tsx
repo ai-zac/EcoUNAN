@@ -6,15 +6,25 @@ import { navigationRef } from './navigationRef';
 import { theme } from '../theme/theme';
 
 import { UserRewardsScreen } from '../screens/UserRewardsScreen';
+import { SplashScreen } from '../screens/SplashScreen';
+import { RewardUnlockedScreen } from '../screens/RewardUnlockedScreen';
 import { RewardDetailScreen } from '../screens/RewardDetailScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { RedemptionSuccessScreen } from '../screens/RedemptionSuccessScreen';
 import { RecycleSuccessScreen } from '../screens/RecycleSuccessScreen';
 import { RecycleScreen } from '../screens/RecycleScreen';
 import { RecyclePendingScreen } from '../screens/RecyclePendingScreen';
+import { RankingScreen } from '../screens/RankingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { PointsScreen } from '../screens/PointsScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { MyRewardsScreen } from '../screens/MyRewardsScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { LeaguePathScreen } from '../screens/LeaguePathScreen';
+import { HomeScreen } from '../screens/HomeScreen';
+import { HelpScreen } from '../screens/HelpScreen';
+import { GoalsScreen } from '../screens/GoalsScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { ConfirmRewardScreen } from '../screens/ConfirmRewardScreen';
 import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
@@ -25,14 +35,21 @@ import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
 import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
 
 export type RootStackParamList = {
+  Splash: undefined;
+  Onboarding: undefined;
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  Home: undefined;
+  Inicio: undefined;
   Profile: undefined;
   Perfil: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
   Points: undefined;
   Puntos: undefined;
+  Goals: undefined;
+  Metas: undefined;
   Recycle: undefined;
   Reciclar: undefined;
   RecyclePending: undefined;
@@ -40,8 +57,13 @@ export type RootStackParamList = {
   RedemptionSuccess: undefined;
   AvailableRewards: undefined;
   UserRewards: undefined;
+  MyRewards: undefined;
   RewardDetail: { reward?: any } | undefined;
   ConfirmReward: { reward: any };
+  RewardUnlocked: { reward: any };
+  Ranking: undefined;
+  LeaguePath: undefined;
+  Help: undefined;
   AdminUsers: undefined;
   AdminRewards: undefined;
   AdminRedemptions: undefined;
@@ -77,20 +99,27 @@ export const AppNavigator = () => {
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
         id="RootStack"
-        initialRouteName="Login"
+        initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Inicio" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Perfil" component={ProfileScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <Stack.Screen name="Points" component={PointsScreen} />
         <Stack.Screen name="Puntos" component={PointsScreen} />
+        <Stack.Screen name="Goals" component={GoalsScreen} />
+        <Stack.Screen name="Metas" component={GoalsScreen} />
         <Stack.Screen name="Recycle" component={RecycleScreen} />
         <Stack.Screen name="Reciclar" component={RecycleScreen} />
         <Stack.Screen name="RecyclePending" component={RecyclePendingScreen} />
@@ -98,8 +127,13 @@ export const AppNavigator = () => {
         <Stack.Screen name="RedemptionSuccess" component={RedemptionSuccessScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AvailableRewards" component={AvailableRewardsScreen} />
         <Stack.Screen name="UserRewards" component={UserRewardsScreen} />
+        <Stack.Screen name="MyRewards" component={MyRewardsScreen} />
         <Stack.Screen name="RewardDetail" component={RewardDetailScreen} />
         <Stack.Screen name="ConfirmReward" component={ConfirmRewardScreen} />
+        <Stack.Screen name="RewardUnlocked" component={RewardUnlockedScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Ranking" component={RankingScreen} />
+        <Stack.Screen name="LeaguePath" component={LeaguePathScreen} />
+        <Stack.Screen name="Help" component={HelpScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminRewards" component={AdminRewardsScreen} />
         <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
