@@ -15,6 +15,7 @@ import { RecycleSuccessScreen } from '../screens/RecycleSuccessScreen';
 import { RecycleScreen } from '../screens/RecycleScreen';
 import { RecyclePendingScreen } from '../screens/RecyclePendingScreen';
 import { RankingScreen } from '../screens/RankingScreen';
+import { QRScannerScreen } from '../screens/QRScannerScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { PointsScreen } from '../screens/PointsScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
@@ -33,6 +34,11 @@ import { AdminUsersScreen } from '../screens/AdminUsersScreen';
 import { AdminRewardsScreen } from '../screens/AdminRewardsScreen';
 import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
 import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
+import { AdminGoalsScreen } from '../screens/AdminGoalsScreen';
+import { AdminEditRewardScreen } from '../screens/AdminEditRewardScreen';
+import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
+import { AdminCreateStaffScreen } from '../screens/AdminCreateStaffScreen';
+import { AdminActivityLogScreen } from '../screens/AdminActivityLogScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -64,10 +70,16 @@ export type RootStackParamList = {
   Ranking: undefined;
   LeaguePath: undefined;
   Help: undefined;
+  QRScanner: undefined;
+  AdminDashboard: undefined;
   AdminUsers: undefined;
   AdminRewards: undefined;
-  AdminRedemptions: undefined;
+  AdminEditReward: { reward?: any } | undefined;
   AdminRecycles: undefined;
+  AdminCreateStaff: undefined;
+  AdminGoals: undefined;
+  AdminRedemptions: undefined;
+  AdminActivityLog: undefined;
 };
 
 declare global {
@@ -134,12 +146,17 @@ export const AppNavigator = () => {
         <Stack.Screen name="Ranking" component={RankingScreen} />
         <Stack.Screen name="LeaguePath" component={LeaguePathScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
+        <Stack.Screen name="QRScanner" component={QRScannerScreen} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminRewards" component={AdminRewardsScreen} />
-        <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
+        <Stack.Screen name="AdminEditReward" component={AdminEditRewardScreen} />
         <Stack.Screen name="AdminRecycles" component={AdminRecyclesScreen} />
+        <Stack.Screen name="AdminCreateStaff" component={AdminCreateStaffScreen} />
+        <Stack.Screen name="AdminGoals" component={AdminGoalsScreen} />
+        <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
+        <Stack.Screen name="AdminActivityLog" component={AdminActivityLogScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
