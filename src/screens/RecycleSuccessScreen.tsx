@@ -14,21 +14,21 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
   const items = recycleRecord?.items || [];
   const totalPoints = recycleRecord?.totalPoints || 0;
 
-  // Animación del fondo verde que se encoge a círculo
+  
   const circleScale = useRef(new Animated.Value(30)).current; 
-  // Animación para el check y el resto del contenido
+  
   const contentFade = useRef(new Animated.Value(0)).current;
   const contentSlide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.sequence([
-      // 1. El círculo verde gigante se encoge hasta su tamaño normal
+      
       Animated.timing(circleScale, {
         toValue: 1,
         duration: 600,
         useNativeDriver: true,
       }),
-      // 2. Aparece el checkmark y el resto de la interfaz
+      
       Animated.parallel([
         Animated.timing(contentFade, {
           toValue: 1,
@@ -48,7 +48,7 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         
-        {/* Parte superior con círculo y textos */}
+        {}
         <View style={styles.topSection}>
           
           <View style={styles.circleContainer}>
@@ -67,7 +67,7 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
 
         </View>
 
-        {/* Tarjeta de Detalles */}
+        {}
         <Animated.View style={{ opacity: contentFade, transform: [{ translateY: contentSlide }], flex: 1 }}>
           <View style={styles.detailsCard}>
             
@@ -104,7 +104,7 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
           </View>
         </Animated.View>
 
-        {/* Botón inferior */}
+        {}
         <Animated.View style={{ opacity: contentFade, paddingBottom: theme.spacing.m }}>
           <TouchableOpacity 
             style={styles.actionButton} 

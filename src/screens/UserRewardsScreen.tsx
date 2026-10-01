@@ -26,17 +26,17 @@ export const UserRewardsScreen = ({ navigation }: any) => {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Cargar puntos locales inmediatamente para UI más rápida
+      
       const localUser = await AuthService.getCurrentUser();
       if (localUser) {
         setUserPoints(localUser.ecoPoints || 0);
       }
 
-      // Obtener recompensas
+      
       const fetchedRewards = await rewardService.getRewards();
       setRewards(fetchedRewards);
 
-      // Actualizar puntos de forma silenciosa en segundo plano
+      
       userService.getMe().then(user => {
         if (user) setUserPoints(user.ecoPoints || 0);
       }).catch(err => console.log('Error silenciado al actualizar usuario:', err));

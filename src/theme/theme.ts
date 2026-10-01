@@ -1,6 +1,6 @@
 export type ThemeMode = 'light' | 'dark';
 
-// Paletas base: la forma debe ser identica en ambas
+
 const lightColors = {
   primary: '#111827',
   primaryLight: '#1F2937',
@@ -15,7 +15,7 @@ const lightColors = {
 };
 
 const darkColors = {
-  primary: '#111827',     // Botones mantienen contraste con texto blanco
+  primary: '#111827',     
   primaryLight: '#1F2937',
   accent: '#22C55E',
   background: '#0B1220',
@@ -23,7 +23,7 @@ const darkColors = {
   text: '#F1F5F9',
   textSecondary: '#94A3B8',
   border: '#263244',
-  white: '#FFFFFF',       // Blanco literal en ambos modos (texto sobre botones)
+  white: '#FFFFFF',       
   transparent: 'transparent' as const,
 };
 
@@ -32,11 +32,6 @@ let mode: ThemeMode = 'light';
 type ColorListener = (m: ThemeMode) => void;
 const listeners = new Set<ColorListener>();
 
-/**
- * Objeto exportado con LA MISMA FORMA que antes (theme.colors.*).
- * Las propiedades son getters que resuelven al color del modo ACTIVO,
- * y setThemeMode() muta el modo + notifica a los suscriptores.
- */
 export const theme = {
   get colors() {
     return mode === 'dark' ? darkColors : lightColors;
@@ -56,8 +51,8 @@ export const theme = {
     xl: 32,
     round: 9999,
   },
-  // Tipografia dinamica: los colores resuelven al modo activo cuando
-  // los estilos se reconstruyen con useStyles(colors)
+  
+  
   typography: {
     get h1() { return { fontSize: 32, fontWeight: 'bold' as const, color: this._active().text }; },
     get h2() { return { fontSize: 24, fontWeight: 'bold' as const, color: this._active().text }; },
@@ -104,7 +99,6 @@ export function setThemeMode(next: ThemeMode): void {
   listeners.forEach(l => l(mode));
 }
 
-/** Suscripcion para componentes que necesitan re-renderizar al cambiar el modo */
 export function subscribeTheme(listener: ColorListener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

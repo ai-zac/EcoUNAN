@@ -63,7 +63,7 @@ export const ChangePasswordScreen = ({ navigation }: any) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          {/* Encabezado visual */}
+          {}
           <View style={styles.hero}>
             <View style={styles.iconBox}>
               <Lock size={26} color={colors.accent} />
@@ -102,6 +102,15 @@ export const ChangePasswordScreen = ({ navigation }: any) => {
             onPress={handleSubmit}
             style={{ marginTop: theme.spacing.l }}
           />
+          
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={{ marginTop: theme.spacing.xl, alignItems: 'center', padding: theme.spacing.m }}
+          >
+            <Text style={{ ...theme.typography.body, color: colors.primary, fontWeight: '600' }}>
+              ¿Olvidaste tu contraseña actual?
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

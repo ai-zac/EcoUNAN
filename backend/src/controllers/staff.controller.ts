@@ -1,10 +1,11 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import User from '../models/user.model';
 
 const STAFF_ROLES = ['brigadista', 'admin', 'superadmin'];
+const ALL_ROLES = ['user', 'brigadista', 'admin', 'superadmin'];
 
 export class StaffController {
-  // Listar usuarios con busqueda por nombre/correo/carnet y filtro por estado
+  
   public async getUsers(req: Request, res: Response): Promise<void> {
     try {
       const { search, status } = req.query;
@@ -26,21 +27,21 @@ export class StaffController {
     }
   }
 
-  // Crear miembro del staff con credenciales provisionales
+  
   public async createStaff(req: Request, res: Response): Promise<void> {
     try {
       const { name, email, password, studentId, faculty, career, role } = req.body;
 
       if (!name || !email || !password || !role) {
-        res.status(400).json({ success: false, error: 'Nombre, email, contraseÃ±a y rol son obligatorios' });
+        res.status(400).json({ success: false, error: 'Nombre, email, contraseña y rol son obligatorios' });
         return;
       }
       if (!STAFF_ROLES.includes(role)) {
-        res.status(400).json({ success: false, error: 'Rol invÃ¡lido. Usa: brigadista, admin o superadmin' });
+        res.status(400).json({ success: false, error: 'Rol inválido. Usa: brigadista, admin o superadmin' });
         return;
       }
       if (String(password).length < 8) {
-        res.status(400).json({ success: false, error: 'La contraseÃ±a debe tener al menos 8 caracteres' });
+        res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 8 caracteres' });
         return;
       }
 
@@ -75,14 +76,14 @@ export class StaffController {
     }
   }
 
-  // Cambiar rol de un usuario
+  
   public async updateRole(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const { role } = req.body;
 
-      if (!STAFF_ROLES.includes(role)) {
-        res.status(400).json({ success: false, error: 'Rol invÃ¡lido' });
+      if (!ALL_ROLES.includes(role)) {
+        res.status(400).json({ success: false, error: 'Rol inválido' });
         return;
       }
 
@@ -110,7 +111,7 @@ export class StaffController {
     }
   }
 
-  // Habilitar / deshabilitar cuenta (nunca borrar: historial intacto)
+  
   public async toggleStatus(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;

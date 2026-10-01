@@ -21,7 +21,7 @@ export const RewardDetailScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color={colors.text} />
@@ -74,7 +74,7 @@ export const RewardDetailScreen = ({ navigation }: any) => {
       <View style={styles.footer}>
         <Button 
           title="Canjear recompensa" 
-          disabled={true} // Se habilita solo cuando tengan los 2000 pts
+          disabled={true} 
           onPress={() => {}} 
         />
       </View>

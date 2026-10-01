@@ -96,7 +96,7 @@ export const MyRewardsScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      {/* Modal para ver el QR de entrega */}
+      {}
       <Modal visible={!!selectedReward} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

@@ -22,7 +22,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [mode, setLocal] = useState<ThemeMode>(getThemeMode());
   const [ready, setReady] = useState(false);
 
-  // Cargar preferencia guardada ANTES del primer render util
+  
   useEffect(() => {
     (async () => {
       try {
@@ -56,11 +56,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useThemeMode = (): ThemeContextValue => useContext(ThemeContext);
 
-/**
- * Paleta ACTIVA resuelta en cada render.
- * Usar dentro de makeStyles(colors) para estilos reactivos al modo.
- */
 export const useThemeColors = () => {
-  useThemeMode(); // suscripcion para re-renderizar al alternar
-  return theme.colors; // getter: resuelve a la paleta activa
+  useThemeMode(); 
+  return theme.colors; 
 };

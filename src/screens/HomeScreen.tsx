@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Ani
 import { Leaf, Gift, Trophy, Activity, ArrowRight, ScanLine, Medal } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { getUserRank } from '../utils/ranks';
 import { Button } from '../components/Button';
 import { userService } from '../api/services/user.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -66,12 +68,12 @@ export const HomeScreen = ({ navigation }: any) => {
       try {
         const rewards = await rewardService.getRewards();
         if (rewards.length > 0) {
-          // Pick the cheapest reward the user can work toward
+          
           const sorted = [...rewards].sort((a, b) => a.pointsCost - b.pointsCost);
           setNextReward(sorted[0]);
         }
       } catch (e) {
-        // Non-critical — reward card just won't show
+        
       }
     } catch (error) {
       console.error(error);
@@ -89,17 +91,12 @@ export const HomeScreen = ({ navigation }: any) => {
   };
 
   const currentPoints = user?.ecoPoints || 0;
-  const targetPoints = 2000;
-  const progressPercent = Math.min((currentPoints / targetPoints) * 100, 100).toFixed(1);
+  const lifetimePoints = user?.lifetimePoints || currentPoints;
+  const rankData = getUserRank(lifetimePoints);
 
-  const getLevelInfo = (points: number) => {
-    if (points < 500) return { level: 'Nivel 1', title: 'Principiante' };
-    if (points < 1000) return { level: 'Nivel 2', title: 'Eco Amigo' };
-    if (points < 2000) return { level: 'Nivel 3', title: 'Reciclador' };
-    return { level: 'Nivel 4', title: 'Eco Hero' };
-  };
+  const targetPoints = rankData.nextRank ? rankData.nextRank.minPoints : rankData.currentRank.minPoints;
+  const progressPercent = Math.round(rankData.progressPercentage).toFixed(1);
 
-  const levelInfo = getLevelInfo(currentPoints);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -125,7 +122,15 @@ export const HomeScreen = ({ navigation }: any) => {
           <TouchableOpacity style={styles.pointsCard} activeOpacity={0.9} onPress={() => navigation.navigate('Puntos')}>
             <View style={styles.pointsHeader}>
               <Text style={styles.pointsTitle}>MIS PUNTOS</Text>
-              <Text style={styles.premiumText}>Premium</Text>
+              <TouchableOpacity 
+                style={[styles.premiumBadge, { backgroundColor: rankData.currentRank.color + '20' }]} 
+                onPress={() => navigation.navigate('LeaguePath')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.premiumText, { color: rankData.currentRank.color }]}>
+                  {rankData.currentRank.icon} {rankData.currentRank.name}
+                </Text>
+              </TouchableOpacity>
             </View>
             <Text style={styles.pointsValue}>{currentPoints}</Text>
             <Text style={styles.pointsSubtitle}>puntos</Text>
@@ -145,7 +150,7 @@ export const HomeScreen = ({ navigation }: any) => {
             </Text>
           </TouchableOpacity>
 
-          {/* Stats Row */}
+          {}
           <View style={styles.statsRow}>
             <TouchableOpacity style={styles.statCard} activeOpacity={0.8}>
               <View style={[styles.statIcon, { backgroundColor: '#F0FDF4' }]}>
@@ -165,13 +170,13 @@ export const HomeScreen = ({ navigation }: any) => {
               <View style={[styles.statIcon, { backgroundColor: '#FFFBEB' }]}>
                 <Trophy size={20} color="#F59E0B" />
               </View>
-              <Text style={styles.statValue}>{levelInfo.level}</Text>
-              <Text style={styles.statLabel}>{levelInfo.title}</Text>
+              <Text style={styles.statValue}>{rankData.currentRank.icon}</Text>
+              <Text style={[styles.statLabel, { color: rankData.currentRank.color, fontWeight: 'bold' }]}>{rankData.currentRank.name}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        {/* Action Button & Reward */}
+        {}
         <Animated.View style={[{ opacity: fadeAnim3, transform: [{ translateY: slideAnim3 }] }]}>
           <Button 
             title="Registrar reciclaje" 
@@ -220,7 +225,7 @@ export const HomeScreen = ({ navigation }: any) => {
   );
 };
 
-// Estilos reactivos al modo activo
+
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
@@ -258,7 +263,16 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   pointsHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   pointsTitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  premiumText: { fontSize: 12, fontWeight: '700', color: '#F59E0B' },
+  premiumText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  premiumBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   pointsValue: { fontSize: 48, fontWeight: '800', color: colors.text, textAlign: 'center', marginTop: theme.spacing.m },
   pointsSubtitle: { textAlign: 'center', color: colors.textSecondary, marginBottom: theme.spacing.l },
   

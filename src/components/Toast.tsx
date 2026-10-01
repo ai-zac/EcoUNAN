@@ -12,7 +12,6 @@ interface ToastState {
 let listener: ((t: ToastState | null) => void) | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Muestra un toast global. Uso: showToast('Guardado', 'success') */
 export function showToast(message: string, type: ToastType = 'info'): void {
   if (hideTimer) clearTimeout(hideTimer);
   listener?.({ message, type });
@@ -25,7 +24,6 @@ const ICONS: Record<ToastType, { Icon: any; color: string; bg: string }> = {
   info: { Icon: Info, color: '#3B82F6', bg: '#DBEAFE' },
 };
 
-/** Host global. Montar UNA vez en App.tsx encima del navegador. */
 export const ToastHost = () => {
   const [toast, setToast] = useState<ToastState | null>(null);
   const anim = useRef(new Animated.Value(-120)).current;

@@ -5,6 +5,7 @@ import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { GlassWater, FileText, Trash2, Box, Gift, X } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { userService } from '../api/services/user.service';
 import { RecycleService } from '../api/services/recycle.service';
 import { rewardService } from '../api/services/reward.service';
@@ -77,7 +78,7 @@ export const PointsScreen = ({ navigation }: any) => {
     }
   };
 
-  // Historial unificado segun el filtro activo
+  
   const filteredHistory: HistoryEntry[] = React.useMemo(() => {
     if (activeFilter === 'Ganados') {
       return recycles.map(data => ({ kind: 'recycle', data }));
@@ -116,7 +117,7 @@ export const PointsScreen = ({ navigation }: any) => {
     return (
       <View style={styles.chartContainer}>
         <Svg width={size} height={size}>
-          {/* Fondo del círculo (Gris) */}
+          {}
           <Circle
             stroke="#F1F5F9"
             cx={size / 2}
@@ -125,7 +126,7 @@ export const PointsScreen = ({ navigation }: any) => {
             strokeWidth={strokeWidth}
             fill="transparent"
           />
-          {/* Progreso del círculo (Verde) */}
+          {}
           <AnimatedCircle
             stroke={colors.accent}
             cx={size / 2}
@@ -284,7 +285,7 @@ export const PointsScreen = ({ navigation }: any) => {
 
       </Animated.ScrollView>
 
-      {/* Modal de Detalle */}
+      {}
       <Modal
         animationType="fade"
         transparent={true}
@@ -322,6 +323,19 @@ export const PointsScreen = ({ navigation }: any) => {
                     <Text style={styles.modalDescText}>{selectedItem.data.reward.description}</Text>
                   </View>
                 ) : null}
+
+                {selectedItem.data.status === 'pending' && (
+                  <View style={{ alignItems: 'center', marginTop: 20 }}>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12, textAlign: 'center' }}>
+                      Muestra este QR al administrador para completar la entrega.
+                    </Text>
+                    <QRCode
+                      value={selectedItem.data.qrCodeData}
+                      size={180}
+                      backgroundColor="#FFFFFF"
+                    />
+                  </View>
+                )}
               </>
             )}
 

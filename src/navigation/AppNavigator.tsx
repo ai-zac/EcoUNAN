@@ -9,6 +9,7 @@ import { StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { useThemeMode } from '../context/ThemeContext';
+import { navigationRef } from './navigationRef';
 
 import { theme } from '../theme/theme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -24,8 +25,10 @@ import { RecyclePendingScreen } from '../screens/RecyclePendingScreen';
 import { PointsScreen } from '../screens/PointsScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
 
-// Nuevas pantallas de detalle
+
 import { RecycleSuccessScreen } from '../screens/RecycleSuccessScreen';
+import { RedemptionSuccessScreen } from '../screens/RedemptionSuccessScreen';
+import { LeaguePathScreen } from '../screens/LeaguePathScreen';
 import { RewardDetailScreen } from '../screens/RewardDetailScreen';
 import { QRScannerScreen } from '../screens/QRScannerScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
@@ -35,25 +38,25 @@ import { ConfirmRewardScreen } from '../screens/ConfirmRewardScreen';
 import { RewardUnlockedScreen } from '../screens/RewardUnlockedScreen';
 import { MyRewardsScreen } from '../screens/MyRewardsScreen';
 
-// Admin
+
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { AdminUsersScreen } from '../screens/AdminUsersScreen';
 import { AdminRewardsScreen } from '../screens/AdminRewardsScreen';
 import { AdminEditRewardScreen } from '../screens/AdminEditRewardScreen';
 import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
-import { AdminGenerateQRScreen } from '../screens/AdminGenerateQRScreen';
 import { AdminCreateStaffScreen } from '../screens/AdminCreateStaffScreen';
 import { AdminGoalsScreen } from '../screens/AdminGoalsScreen';
 import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
+import { AdminActivityLogScreen } from '../screens/AdminActivityLogScreen';
 
-// Pantallas secundarias de perfil
+
 import { RankingScreen } from '../screens/RankingScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
 import { HelpScreen } from '../screens/HelpScreen';
 
-// 1. Define Param Lists for Type Safety
+
 export type MainTabParamList = {
   Inicio: undefined;
   Reciclar: undefined;
@@ -73,12 +76,14 @@ export type RootStackParamList = {
   AdminUsers: undefined;
   AdminRewards: undefined;
   AdminRecycles: undefined;
-  AdminGenerateQR: undefined;
   AdminCreateStaff: undefined;
   AdminGoals: undefined;
   AdminRedemptions: undefined;
+  AdminActivityLog: undefined;
   RecyclePending: undefined;
   RecycleSuccess: undefined;
+  RedemptionSuccess: undefined;
+  LeaguePath: undefined;
   RewardDetail: undefined;
   QRScanner: undefined;
   EditProfile: undefined;
@@ -94,7 +99,7 @@ export type RootStackParamList = {
   Help: undefined;
 };
 
-// Global typing for useNavigation
+
 declare global {
   namespace ReactNavigation {
     interface RootParamList extends RootStackParamList {}
@@ -172,7 +177,7 @@ const MainTabs = () => {
 
 export const AppNavigator = () => {
   const { isDark } = useThemeMode();
-  // Chrome de navegacion (tab bar, fondos) responde al modo en vivo
+  
   const navTheme = isDark
     ? {
         ...DarkTheme,
@@ -189,13 +194,14 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={navTheme}>
       <Stack.Navigator 
         id="RootStack"
         initialRouteName="Splash"
         screenOptions={{ 
           headerShown: false,
-          animation: 'slide_from_right', // Smooth transitions between screens
+          animation: 'slide_from_right', 
         }}
       >
         <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
@@ -209,15 +215,17 @@ export const AppNavigator = () => {
         <Stack.Screen name="AdminRewards" component={AdminRewardsScreen} />
         <Stack.Screen name="AdminEditReward" component={AdminEditRewardScreen} />
         <Stack.Screen name="AdminRecycles" component={AdminRecyclesScreen} />
-        <Stack.Screen name="AdminGenerateQR" component={AdminGenerateQRScreen} />
         <Stack.Screen name="AdminCreateStaff" component={AdminCreateStaffScreen} />
         <Stack.Screen name="AdminGoals" component={AdminGoalsScreen} />
         <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
+        <Stack.Screen name="AdminActivityLog" component={AdminActivityLogScreen} />
         
-        {/* Pantallas de detalle */}
+        {}
         <Stack.Screen name="Ranking" component={RankingScreen} />
         <Stack.Screen name="RecyclePending" component={RecyclePendingScreen} />
         <Stack.Screen name="RecycleSuccess" component={RecycleSuccessScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="RedemptionSuccess" component={RedemptionSuccessScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="LeaguePath" component={LeaguePathScreen} />
         <Stack.Screen name="RewardDetail" component={RewardDetailScreen} />
         <Stack.Screen name="QRScanner" component={QRScannerScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
@@ -227,7 +235,7 @@ export const AppNavigator = () => {
         <Stack.Screen name="RewardUnlocked" component={RewardUnlockedScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="MyRewards" component={MyRewardsScreen} />
 
-        {/* Pantallas secundarias de soporte */}
+        {}
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />

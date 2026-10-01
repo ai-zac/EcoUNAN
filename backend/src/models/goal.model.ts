@@ -51,4 +51,6 @@ const goalSchema: Schema = new Schema(
   }
 );
 
+goalSchema.index({ isActive: 1, endDate: 1 });
+
 export default mongoose.model<IGoal>('Goal', goalSchema);

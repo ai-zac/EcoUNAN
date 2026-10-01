@@ -167,7 +167,7 @@ export const AdminUsersScreen = ({ navigation }: any) => {
         <Text style={styles.title}>Gestión de Usuarios</Text>
       </View>
 
-      {/* Buscador */}
+      {}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Search size={18} color={colors.textSecondary} />

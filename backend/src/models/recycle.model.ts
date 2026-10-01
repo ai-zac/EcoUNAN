@@ -13,6 +13,7 @@ export interface IRecycle extends Document {
   validationMode?: 'photo' | 'inperson';
   proofImage?: string;
   description?: string;
+  validatedBy?: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,10 +69,20 @@ const recycleSchema: Schema = new Schema(
       type: String,
       required: false,
     },
+    validatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+      ref: 'User',
+    },
   },
   {
     timestamps: true,
   }
 );
+
+recycleSchema.index({ status: 1, createdAt: -1 });
+recycleSchema.index({ user: 1, status: 1, createdAt: -1 });
+recycleSchema.index({ validatedBy: 1, status: 1, createdAt: -1 });
+recycleSchema.index({ 'items.materialType': 1, status: 1, createdAt: -1 });
 
 export default mongoose.model<IRecycle>('Recycle', recycleSchema);

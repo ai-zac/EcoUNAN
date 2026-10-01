@@ -4,7 +4,7 @@ import { protect, superAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Todo el modulo de staff es exclusivo del superadmin
+
 router.use(protect, superAdmin);
 
 router.get('/users', staffController.getUsers);

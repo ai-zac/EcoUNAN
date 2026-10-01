@@ -1,12 +1,13 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 import { sendMail } from '../utils/mailer';
+import { createInitialUserNotifications } from '../services/notification.service';
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET as string, {
-    expiresIn: '30d',
+    expiresIn: '7d',
   });
 };
 
@@ -15,13 +16,28 @@ export class AuthController {
     try {
       const { name, email, password, studentId, faculty, career } = req.body;
 
-      const userExists = await User.findOne({ email });
-      if (userExists) {
-        res.status(400).json({ success: false, error: 'User already exists' });
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email)) {
+        res.status(400).json({ success: false, error: 'Formato de email inválido' });
         return;
       }
 
-      // El rol NUNCA viene del cliente. Los roles de staff los asigna el superadmin.
+      if (!password || String(password).length < 8) {
+        res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 8 caracteres' });
+        return;
+      }
+
+      if (!name || String(name).trim().length < 2) {
+        res.status(400).json({ success: false, error: 'El nombre es obligatorio (mínimo 2 caracteres)' });
+        return;
+      }
+
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        res.status(400).json({ success: false, error: 'Este correo electrónico ya está registrado' });
+        return;
+      }
+
       const user = await User.create({
         name,
         email,
@@ -33,6 +49,7 @@ export class AuthController {
       });
 
       if (user) {
+        await createInitialUserNotifications(user._id);
         res.status(201).json({
           success: true,
           data: {
@@ -53,8 +70,12 @@ export class AuthController {
 public async login(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
+      if (!email || !password || !String(email).trim() || !String(password).trim()) {
+        res.status(400).json({ success: false, error: 'Por favor ingresa tu correo y contraseña' });
+        return;
+      }
 
-      const user = await User.findOne({ email }).select('+password');
+      const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select('+password');
 
       if (user && (await user.matchPassword(password))) {
         if (!user.isActive) {
@@ -72,16 +93,14 @@ public async login(req: Request, res: Response): Promise<void> {
           }
         });
       } else {
-        res.status(401).json({ success: false, error: 'Invalid email or password' });
+        res.status(401).json({ success: false, error: 'Correo o contraseña incorrectos' });
       }
     } catch (error: any) {
       console.error('[500]', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
-  // @desc    Solicitar codigo de recuperacion de contraseÃ±a
-  // @route   POST /api/auth/forgot-password
-  // @access  Public (por diseno: el usuario perdio su acceso)
+
   public async forgotPassword(req: Request, res: Response): Promise<void> {
     try {
       const { email } = req.body;
@@ -97,25 +116,61 @@ public async login(req: Request, res: Response): Promise<void> {
         const hash = crypto.createHash('sha256').update(code).digest('hex');
 
         user.resetPasswordCodeHash = hash;
-        user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+        user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
         await user.save();
 
         await sendMail(
           user.email,
-          'RecuperaciÃ³n de contraseÃ±a - EcoUNAN',
-          `<div style="font-family:sans-serif;max-width:480px">
-            <h2 style="color:#16A34A">EcoUNAN ðŸŒ±</h2>
-            <p>Hola ${user.name}, tu cÃ³digo para restablecer la contraseÃ±a es:</p>
-            <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#F0FDF4;padding:12px;text-align:center;border-radius:8px">${code}</p>
-            <p>Este cÃ³digo expira en <b>15 minutos</b>. Si no solicitaste el cambio, ignora este mensaje.</p>
-          </div>`
+          'Recuperación de contraseña - EcoUNAN',
+          `<!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+              <div style="background-color: #16A34A; padding: 30px 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">EcoUNAN</h1>
+                <p style="color: #e6f6ec; margin: 10px 0 0 0; font-size: 16px;">Recuperación de cuenta</p>
+              </div>
+
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333333; margin-top: 0;">Hola, ${user.name}</h2>
+                <p style="color: #555555; font-size: 16px; line-height: 1.6;">
+                  Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>EcoUNAN</strong>.
+                  Utiliza el siguiente código de verificación de 6 dígitos para continuar con el proceso:
+                </p>
+
+                <div style="background-color: #F0FDF4; border: 2px dashed #16A34A; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
+                  <span style="font-size: 42px; font-weight: bold; letter-spacing: 12px; color: #16A34A; display: inline-block; margin-left: 12px;">
+                    ${code}
+                  </span>
+                </div>
+
+                <p style="color: #555555; font-size: 15px; margin-bottom: 5px;">
+                  Este código expirará en <strong>15 minutos</strong>.
+                </p>
+                <p style="color: #888888; font-size: 14px; margin-top: 0;">
+                  Si no solicitaste este cambio, puedes ignorar este correo de forma segura. Tu cuenta seguirá protegida.
+                </p>
+              </div>
+
+              <div style="background-color: #f9fbf9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
+                <p style="color: #999999; font-size: 12px; margin: 0;">
+                  &copy; ${new Date().getFullYear()} EcoUNAN. Todos los derechos reservados.<br>
+                  Universidad Nacional Autónoma de Nicaragua
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>`
         );
       }
 
-      // Respuesta generica: no revela si el correo existe o no
       res.status(200).json({
         success: true,
-        message: 'Si el correo estÃ¡ registrado, recibirÃ¡s un cÃ³digo de recuperaciÃ³n.'
+        message: 'Si el correo está registrado, recibirás un código de recuperación.'
       });
     } catch (error: any) {
       console.error('[500]', error);
@@ -123,9 +178,6 @@ public async login(req: Request, res: Response): Promise<void> {
     }
   }
 
-  // @desc    Restablecer contraseÃ±a con el codigo recibido
-  // @route   PUT /api/auth/reset-password
-  // @access  Public (por diseno)
   public async resetPassword(req: Request, res: Response): Promise<void> {
     try {
       const { email, code, newPassword } = req.body;
@@ -135,42 +187,40 @@ public async login(req: Request, res: Response): Promise<void> {
         return;
       }
       if (String(newPassword).length < 8) {
-        res.status(400).json({ success: false, error: 'La nueva contraseÃ±a debe tener al menos 8 caracteres' });
+        res.status(400).json({ success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres' });
         return;
       }
 
       const user = await User.findOne({ email: String(email).toLowerCase() }).select('+password +resetPasswordCodeHash +resetPasswordExpires');
       if (!user || !user.resetPasswordCodeHash || !user.resetPasswordExpires) {
-        res.status(400).json({ success: false, error: 'CÃ³digo invÃ¡lido o expirado' });
+        res.status(400).json({ success: false, error: 'Código inválido o expirado' });
         return;
       }
       if (user.resetPasswordExpires.getTime() < Date.now()) {
-        res.status(400).json({ success: false, error: 'El cÃ³digo ha expirado. Solicita uno nuevo.' });
+        res.status(400).json({ success: false, error: 'El código ha expirado. Solicita uno nuevo.' });
         return;
       }
 
       const hash = crypto.createHash('sha256').update(String(code)).digest('hex');
       const valid = crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(user.resetPasswordCodeHash));
       if (!valid) {
-        res.status(400).json({ success: false, error: 'CÃ³digo incorrecto' });
+        res.status(400).json({ success: false, error: 'Código incorrecto' });
         return;
       }
 
-      user.password = newPassword; // pre-save hook la hashea
+      user.password = newPassword;
       user.resetPasswordCodeHash = undefined;
       user.resetPasswordExpires = undefined;
       await user.save();
 
-      res.status(200).json({ success: true, message: 'ContraseÃ±a restablecida correctamente. Ya puedes iniciar sesiÃ³n.' });
+      res.status(200).json({ success: true, message: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' });
     } catch (error: any) {
       console.error('[500]', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
-  // @desc    Login social con Google (verifica el token contra la API de Google)
-  // @route   POST /api/auth/social
-  // @access  Public (por diseno: es autenticacion en si misma)
-  public async socialLogin(req: Request, res: Response): Promise<void> {
+
+public async socialLogin(req: Request, res: Response): Promise<void> {
     try {
       const { provider, accessToken } = req.body;
 
@@ -179,15 +229,19 @@ public async login(req: Request, res: Response): Promise<void> {
         return;
       }
       if (provider !== 'google') {
-        res.status(400).json({ success: false, error: `Proveedor '${provider}' no disponible todavÃ­a` });
+        res.status(400).json({ success: false, error: `Proveedor '${provider}' no disponible todavía` });
         return;
       }
+
+      // TODO [SEC-017]: When Google Client IDs are configured, verify the token's
+      // audience matches this app's client ID. Use google-auth-library's
+      // OAuth2Client.verifyIdToken() or validate the 'aud' claim.
 
       const gResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!gResponse.ok) {
-        res.status(401).json({ success: false, error: 'Token de Google invÃ¡lido o expirado' });
+        res.status(401).json({ success: false, error: 'Token de Google inválido o expirado' });
         return;
       }
 
@@ -201,14 +255,15 @@ public async login(req: Request, res: Response): Promise<void> {
       let user = await User.findOne({ email });
 
       if (!user) {
-        // Alta automatica sin contraseÃ±a conocida por el usuario
+
         const randomPassword = crypto.randomBytes(32).toString('hex');
         user = await User.create({
           name: profile.name || profile.email,
           email,
-          password: randomPassword, // hasheado por el pre-save hook; nadie lo conoce
-          role: 'user', // NUNCA se acepta rol del cliente
+          password: randomPassword,
+          role: 'user',
         });
+        await createInitialUserNotifications(user._id);
       } else if (!user.isActive) {
         res.status(403).json({ success: false, error: 'Cuenta deshabilitada. Contacta al administrador.' });
         return;
@@ -232,4 +287,3 @@ public async login(req: Request, res: Response): Promise<void> {
 }
 
 export const authController = new AuthController();
-

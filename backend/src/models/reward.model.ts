@@ -30,7 +30,7 @@ const rewardSchema: Schema = new Schema(
     },
     stock: {
       type: Number,
-      default: -1, // -1 means unlimited
+      default: -1,
     },
     iconName: {
       type: String,
@@ -53,5 +53,7 @@ const rewardSchema: Schema = new Schema(
     timestamps: true,
   }
 );
+
+rewardSchema.index({ isActive: 1, pointsCost: 1 });
 
 export default mongoose.model<IReward>('Reward', rewardSchema);

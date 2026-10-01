@@ -9,7 +9,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { AuthService } from '../api/services/auth.service';
 
-// Client IDs configurables en app.json -> extra
+
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 const googleClientId =
   Platform.OS === 'ios'
@@ -18,7 +18,7 @@ const googleClientId =
     ? extra.googleAndroidClientId || extra.googleWebClientId || ''
     : extra.googleWebClientId || '';
 
-const redirectUri = AuthSession.makeRedirectUri({ native: 'ecounan://redirect' });
+const redirectUri = AuthSession.makeRedirectUri({ native: 'ecounan://' });
 
 export const LoginScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
@@ -71,7 +71,7 @@ export const LoginScreen = ({ navigation }: any) => {
     }
   };
 
-  // ===== Social login (Google) =====
+  
   const [googleRequest, googleResponse, googlePromptAsync] = AuthSession.useAuthRequest(
     {
       clientId: googleClientId,
@@ -204,7 +204,7 @@ export const LoginScreen = ({ navigation }: any) => {
   );
 };
 
-// Estilos reactivos: se reconstruyen cuando cambia la paleta activa
+
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, padding: theme.spacing.l, justifyContent: 'center' },

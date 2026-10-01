@@ -8,6 +8,7 @@ import { AdminService } from '../api/services/admin.service';
 import { RecycleService } from '../api/services/recycle.service';
 import { API_BASE_URL, assetUrl } from '../api/apiClient';
 import { showToast } from '../components/Toast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const AdminRecyclesScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
@@ -17,20 +18,44 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal de detalles
+  
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [myRole, setMyRole] = useState<string>('admin');
 
-  // Modal de QR de aprobacion presencial
+  
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [approvalQrData, setApprovalQrData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
 
   useEffect(() => {
+    AsyncStorage.getItem('@user_data')
+      .then(d => { if (d) setMyRole(JSON.parse(d).role || 'admin'); });
     fetchPending();
   }, []);
+
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrModalVisible && selectedItem) {
+      interval = setInterval(async () => {
+        try {
+          const data = await AdminService.getPendingRecycles();
+          const stillPending = data.find((item: any) => item._id === selectedItem._id);
+          if (!stillPending) {
+            setQrModalVisible(false);
+            setValidations(data);
+            showToast('¡Validado correctamente!', 'success');
+          }
+        } catch (error) {
+          
+        }
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [qrModalVisible, selectedItem]);
 
   const fetchPending = async () => {
     try {
@@ -103,8 +128,8 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
           <ArrowLeft size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Validar reciclaje</Text>
-        <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.adminBadgeText, { color: '#FFFFFF' }]}>ADMIN</Text>
+        <View style={[styles.adminBadge, myRole === 'superadmin' ? { backgroundColor: '#7C3AED' } : { backgroundColor: colors.primary }]}>
+          <Text style={[styles.adminBadgeText, { color: '#FFFFFF' }]}>{myRole === 'superadmin' ? 'SUPERADMIN' : myRole === 'admin' ? 'ADMIN' : 'BRIGADISTA'}</Text>
         </View>
       </View>
 
@@ -165,7 +190,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      {/* ---------- Modal de Detalles y Evidencia ---------- */}
+      {}
       <Modal animationType="slide" transparent visible={detailsModalVisible} onRequestClose={() => setDetailsModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -243,7 +268,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
               )}
             </ScrollView>
 
-            {/* Barra de acciones fija: sin solapamientos ni flotantes */}
+            {}
             <View style={styles.modalActionsBar}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnReject]}
@@ -286,7 +311,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* ---------- Modal QR de Aprobacion Presencial ---------- */}
+      {}
       <Modal animationType="fade" transparent visible={qrModalVisible} onRequestClose={() => setQrModalVisible(false)}>
         <View style={styles.qrOverlay}>
           <View style={styles.qrCard}>
@@ -303,16 +328,15 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
               )}
             </View>
 
-            <Text style={styles.qrHint}>⏱ El código expira en 10 minutos.</Text>
+            <Text style={styles.qrHint}>El código expira en 10 minutos.</Text>
 
             <TouchableOpacity
-              style={[styles.modalBtn, styles.modalBtnApprove, styles.qrDoneBtn]}
+              style={[styles.modalBtn, styles.modalBtnReject, styles.qrDoneBtn]}
               onPress={() => {
                 setQrModalVisible(false);
-                fetchPending();
               }}
             >
-              <Text style={styles.modalBtnApproveText}>Listo, ya lo escaneó</Text>
+              <Text style={styles.modalBtnRejectText}>Cerrar QR</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -363,7 +387,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 10 },
   viewDetailsText: { fontSize: 13, fontWeight: '800', color: colors.accent, textAlign: 'center' },
 
-  // ---- Modal de detalles ----
+  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: colors.background,
@@ -405,7 +429,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   noEvidenceBox: { padding: 24, backgroundColor: colors.surface, borderRadius: 16, alignItems: 'center', gap: 10 },
   noEvidenceText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500', textAlign: 'center' },
 
-  // Barra de acciones inferior FIJA dentro del modal (no flota ni se solapa)
+  
   modalActionsBar: {
     flexDirection: 'row',
     gap: 12,
@@ -435,7 +459,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   modalBtnApprove: { backgroundColor: colors.primary },
   modalBtnApproveText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 
-  // ---- Modal QR ----
+  
   qrOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   qrCard: {
     width: '100%',
@@ -454,6 +478,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qrHint: { fontSize: 12, marginTop: 12, marginBottom: 20 },
-  qrDoneBtn: { width: '100%' },
+  qrHint: { fontSize: 14, fontWeight: '800', color: '#EF4444', marginTop: 16, marginBottom: 20, textAlign: 'center', backgroundColor: '#FEE2E2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, overflow: 'hidden' },
+  qrDoneBtn: { width: '100%', marginTop: 8 },
 });

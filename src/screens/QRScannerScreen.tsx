@@ -5,6 +5,7 @@ import { ArrowLeft, ScanLine } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { RecycleService } from '../api/services/recycle.service';
+import { AdminService } from '../api/services/admin.service';
 
 export const QRScannerScreen = ({ navigation, route }: any) => {
   const colors = useThemeColors();
@@ -15,8 +16,8 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // BLOQUEO SINCRONO: setScanned es asincrono (batching) y la camara puede
-  // disparar 2-3 eventos en el mismo tick. El ref corta de inmediato.
+  
+  
   const lockRef = useRef(false);
 
   const resetScan = () => {
@@ -33,21 +34,30 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }: any) => {
-    // Primera linea: corte sincrono e inmediato
+    
     if (lockRef.current) return;
     lockRef.current = true;
     setScanned(true);
     setLoading(true);
 
-    // Determinar tipo de QR
-    let parsed: any = null;
-    try { parsed = JSON.parse(data); } catch { /* no es JSON */ }
-
     try {
-      // MODO PRESENCIAL: escaneando el QR de aprobacion del brigadista
-      if (awaitingApproval && parsed?.type === 'eco-approve') {
+      
+      
+      if (typeof data === 'string' && data.startsWith('REDEMPTION-')) {
+        console.log('[QR Scanner] Redemption QR detected:', data);
+        const result = await AdminService.scanRedemptionQR(data);
+        console.log('[QR Scanner] Redemption completed successfully');
+        navigation.replace('RedemptionSuccess', { redemption: result });
+        return;
+      }
+
+      
+      let parsed: any = null;
+      try { parsed = JSON.parse(data); } catch {  }
+
+      
+      if (parsed?.type === 'eco-approve') {
         const record = await RecycleService.confirmPresential(data);
-        // El registro devuelto trae items[] y totalPoints para la pantalla de exito
         Alert.alert(
           '¡Reciclaje validado! ♻️',
           `Tu entrega presencial fue confirmada. Ganaste +${record.totalPoints ?? 0} puntos.`,
@@ -56,30 +66,17 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
         return;
       }
 
-      // MODO BASURERO (flujo clasico)
-      if (!awaitingApproval && parsed?.type === 'eco-unan-qr') {
-        await RecycleService.scanQR(data);
-        Alert.alert(
-          '¡Éxito!',
-          'El reciclaje ha sido validado y los puntos se han sumado a tu cuenta automáticamente.',
-          [{ text: 'Aceptar', onPress: () => navigation.goBack() }]
-        );
-        return;
-      }
-
-      // QR del tipo equivocado para este modo
+      
       Alert.alert(
-        'QR incorrecto',
-        awaitingApproval
-          ? 'Este no es el QR de aprobación del brigadista. Muestra la pantalla correcta.'
-          : 'Este no es un QR de basurero EcoUNAN.',
+        'QR no reconocido',
+        'Este código QR no corresponde a ninguna operación de EcoUNAN.',
         [{ text: 'Intentar de nuevo', onPress: resetScan }]
       );
     } catch (error: any) {
-      console.error(error);
+      console.error('[QR Scanner Error]', error);
       Alert.alert(
         'Error',
-        error?.response?.data?.error || 'No se pudo validar el código QR. Puede que no sea válido o ya haya sido utilizado.',
+        error?.response?.data?.error || 'No se pudo procesar el código QR. Puede que no sea válido o ya haya sido utilizado.',
         [{ text: 'Intentar de nuevo', onPress: resetScan }]
       );
     }
@@ -99,13 +96,13 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
           <ArrowLeft size={20} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.title}>
-          {awaitingApproval ? 'Esperando QR del brigadista' : 'Escanear QR Admin'}
+          {route?.params?.scanningRedemption ? "Escanear QR de Usuario" : (awaitingApproval ? 'Esperando QR del brigadista' : 'Escanear QR Admin')}
         </Text>
       </View>
 
       <View style={styles.cameraContainer}>
         <CameraView
-          style={StyleSheet.absoluteFillObject}
+          style={{ flex: 1 }}
           facing="back"
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
           barcodeScannerSettings={{
@@ -139,9 +136,13 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   backButton: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#333', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   title: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
-  cameraContainer: { flex: 1, overflow: 'hidden', borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  cameraContainer: { flex: 1, overflow: 'hidden', borderTopLeftRadius: 30, borderTopRightRadius: 30, position: 'relative' },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',

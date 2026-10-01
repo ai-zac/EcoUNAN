@@ -2,15 +2,23 @@ import { apiClient } from '../apiClient';
 import { RecycleRecord } from '../../types';
 
 export const RecycleService = {
-  /**
-   * Get user's recycle history
-   */
+  
   getHistory: async (): Promise<RecycleRecord[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: RecycleRecord[]}>('/recycles/history');
       return response.data.data;
     } catch (error) {
       console.error('Error fetching recycle history:', error);
+      throw error;
+    }
+  },
+
+  getUserStats: async (userId: string): Promise<{recycleCount: number, totalWeight: number}> => {
+    try {
+      const response = await apiClient.get<{success: boolean, data: {recycleCount: number, totalWeight: number}}>(`/recycles/user/${userId}/stats`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching user recycle stats:', error);
       throw error;
     }
   },
@@ -70,15 +78,4 @@ export const RecycleService = {
     }
   },
 
-  scanQR: async (qrData: string): Promise<RecycleRecord> => {
-    try {
-      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/scan-qr', {
-        qrData
-      });
-      return response.data.data;
-    } catch (error) {
-      console.error('Error scanning QR:', error);
-      throw error;
-    }
-  }
 };

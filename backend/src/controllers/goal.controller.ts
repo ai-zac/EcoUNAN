@@ -1,16 +1,14 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import Goal from '../models/goal.model';
+import GoalClaim from '../models/goalClaim.model';
 import Recycle from '../models/recycle.model';
 import User from '../models/user.model';
-import { notifyUser } from '../services/notification.service';
+import { notifyUser, notifyAllUsers } from '../services/notification.service';
+import { checkAndNotifyRankUpgrade } from '../utils/ranks';
 
 const STAFF_ROLES = ['admin', 'superadmin', 'brigadista'];
 
-/**
- * Progreso del usuario hacia una meta:
- * reciclajes VALIDADOS creados entre el inicio de la meta y ahora (sin pasar de endDate).
- */
 async function computeProgress(userId: string, goal: any): Promise<number> {
   const end = new Date(Math.min(Date.now(), new Date(goal.endDate).getTime()));
   const filter = {
@@ -18,14 +16,12 @@ async function computeProgress(userId: string, goal: any): Promise<number> {
     status: 'validated',
     createdAt: { $gte: goal.createdAt, $lte: end },
   };
-  // Casteo: los genericos de countDocuments en Mongoose 9 no resuelven filtros mixtos
+
   return Recycle.countDocuments(filter as never);
 }
 
 export class GoalController {
-  // @desc    Get goals (solo activas para usuarios; staff puede pedir todas)
-  // @route   GET /api/goals?includeInactive=true
-  // @access  Private
+
   public async getGoals(req: Request, res: Response): Promise<void> {
     try {
       const role = (req as any).user?.role;
@@ -40,9 +36,6 @@ export class GoalController {
     }
   }
 
-  // @desc    Create a goal
-  // @route   POST /api/goals
-  // @access  Private/Admin
   public async createGoal(req: Request, res: Response): Promise<void> {
     try {
       const { title, description, targetRecycles, rewardPoints, endDate } = req.body;
@@ -70,15 +63,17 @@ export class GoalController {
         isActive: true,
       });
 
+      notifyAllUsers(
+        '¡Nueva meta disponible! 🎯',
+        `Participa en "${goal.title}" y gana ${goal.rewardPoints} EcoPuntos extra. ¡Únete al desafío!`
+      ).catch((err) => console.error('[createGoal] Error notificando a los usuarios:', err));
+
       res.status(201).json({ success: true, data: goal });
     } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // @desc    Update a goal
-  // @route   PUT /api/goals/:id
-  // @access  Private/Admin
   public async updateGoal(req: Request, res: Response): Promise<void> {
     try {
       const allowed = ['title', 'description', 'targetRecycles', 'rewardPoints', 'endDate', 'isActive'];
@@ -96,7 +91,7 @@ export class GoalController {
       }
 
       const goal = await Goal.findByIdAndUpdate(req.params.id, payload, {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       });
 
@@ -111,9 +106,6 @@ export class GoalController {
     }
   }
 
-  // @desc    Delete a goal
-  // @route   DELETE /api/goals/:id
-  // @access  Private/Admin
   public async deleteGoal(req: Request, res: Response): Promise<void> {
     try {
       const goal = await Goal.findByIdAndDelete(req.params.id);
@@ -129,23 +121,29 @@ export class GoalController {
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
-  // @desc    Progreso del usuario actual en todas las metas activas
-  // @route   GET /api/goals/progress
-  // @access  Private
+
   public async getMyProgress(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user._id;
       const goals = await Goal.find({ isActive: true });
+      const goalIds = goals.map((g: any) => g._id);
+
+      const userClaims = await GoalClaim.find({ user: userId, goal: { $in: goalIds } }).select('goal');
+      const claimedSet = new Set(userClaims.map((c: any) => String(c.goal)));
 
       const data = await Promise.all(
-        goals.map(async (goal: any) => ({
-          goalId: goal._id,
-          progress: await computeProgress(String(userId), goal),
-          target: goal.targetRecycles,
-          claimed: (goal.claimedBy || []).some(
+        goals.map(async (goal: any) => {
+          const isClaimed = claimedSet.has(String(goal._id)) || (goal.claimedBy || []).some(
             (c: any) => String(c) === String(userId)
-          ),
-        }))
+          );
+
+          return {
+            goalId: goal._id,
+            progress: await computeProgress(String(userId), goal),
+            target: goal.targetRecycles,
+            claimed: isClaimed,
+          };
+        })
       );
 
       res.status(200).json({ success: true, data });
@@ -155,9 +153,6 @@ export class GoalController {
     }
   }
 
-  // @desc    Reclamar recompensa de una meta completada
-  // @route   POST /api/goals/:id/claim
-  // @access  Private
   public async claimGoal(req: Request, res: Response): Promise<void> {
     try {
       const userId = String((req as any).user._id);
@@ -168,10 +163,12 @@ export class GoalController {
         return;
       }
       if (new Date(goal.endDate).getTime() < Date.now()) {
-        res.status(400).json({ success: false, error: 'La meta ya expirÃ³' });
+        res.status(400).json({ success: false, error: 'La meta ya expiró' });
         return;
       }
-      if ((goal.claimedBy || []).some((c: any) => String(c) === userId)) {
+
+      const alreadyClaimed = await GoalClaim.findOne({ goal: goal._id as any, user: (req as any).user._id });
+      if (alreadyClaimed || (goal.claimedBy || []).some((c: any) => String(c) === userId)) {
         res.status(409).json({ success: false, error: 'Ya reclamaste esta meta' });
         return;
       }
@@ -180,33 +177,43 @@ export class GoalController {
       if (progress < goal.targetRecycles) {
         res.status(400).json({
           success: false,
-          error: `AÃºn no cumples la meta (${progress}/${goal.targetRecycles} reciclajes validados)`
+          error: `Aún no cumples la meta (${progress}/${goal.targetRecycles} reciclajes validados)`
         });
         return;
       }
 
-      // Reclamo atomico: si otro request lo hizo primero, devuelve null
-      const claimed = await Goal.findOneAndUpdate(
-        { _id: goal._id, claimedBy: { $ne: (req as any).user._id } },
-        { $addToSet: { claimedBy: (req as any).user._id } },
-        { new: true }
-      );
-      if (!claimed) {
-        res.status(409).json({ success: false, error: 'Ya reclamaste esta meta' });
-        return;
+      // Record claim atomically with unique index idempotency
+      try {
+        await GoalClaim.create({
+          goal: goal._id as any,
+          user: (req as any).user._id,
+          pointsAwarded: goal.rewardPoints,
+        });
+      } catch (claimErr: any) {
+        if (claimErr.code === 11000) {
+          res.status(409).json({ success: false, error: 'Ya reclamaste esta meta' });
+          return;
+        }
+        throw claimErr;
       }
+
+      const targetUser = await User.findById(userId);
+      const prevLifetimePoints = targetUser?.lifetimePoints || 0;
+      const newLifetimePoints = prevLifetimePoints + goal.rewardPoints;
 
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { $inc: { ecoPoints: goal.rewardPoints } },
-        { new: true, runValidators: true }
-      ).select('ecoPoints');
+        { $inc: { ecoPoints: goal.rewardPoints, lifetimePoints: goal.rewardPoints } },
+        { returnDocument: 'after', runValidators: true }
+      ).select('ecoPoints lifetimePoints');
 
       await notifyUser(
         userId,
-        'Â¡Meta completada! ðŸŽ¯',
+        '¡Meta completada! 🎯',
         `Completaste "${goal.title}" y ganaste +${goal.rewardPoints} puntos.`
       );
+
+      await checkAndNotifyRankUpgrade(userId, prevLifetimePoints, newLifetimePoints);
 
       res.status(200).json({
         success: true,
@@ -225,4 +232,3 @@ export class GoalController {
 }
 
 export const goalController = new GoalController();
-

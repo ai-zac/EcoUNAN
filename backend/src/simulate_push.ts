@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load env vars
+
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 import User from './models/user.model';
@@ -48,14 +48,14 @@ const runSimulation = async () => {
 
   const email = 'jomwestt@icloud.com';
   
-  // Find user
+  
   const user = await User.findOne({ email });
   if (!user) {
     console.error(`User ${email} not found`);
     process.exit(1);
   }
 
-  // Add 500 points
+  
   user.ecoPoints = (user.ecoPoints || 0) + 500;
   await user.save();
   console.log(`Added 500 points to ${email}. Total points: ${user.ecoPoints}`);
@@ -87,9 +87,9 @@ const runSimulation = async () => {
       clearInterval(pushInterval);
       process.exit(0);
     }
-  }, 120000); // 2 minutes (120,000 ms)
+  }, 120000); 
 
-  // Send first one immediately
+  
   count++;
   console.log(`[${new Date().toISOString()}] Sending push notification ${count}/${maxPushes} (immediate)`);
   await sendPushNotification(

@@ -7,7 +7,7 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/social', authController.socialLogin);
 
-// Recuperacion de contraseña: publicas por diseno (el usuario perdio su acceso)
+
 router.post('/forgot-password', authController.forgotPassword);
 router.put('/reset-password', authController.resetPassword);
 

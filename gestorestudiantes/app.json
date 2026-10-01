@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Gestor de Estudiantes",
+    "slug": "gestor-estudiantes",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.unan.gestorestudiantes",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0F1D",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

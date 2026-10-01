@@ -215,7 +215,7 @@ export const AdminGoalsScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      {/* Modal crear / editar */}
+      {}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>

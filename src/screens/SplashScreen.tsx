@@ -40,15 +40,13 @@ export const SplashScreen = ({ navigation }: any) => {
         setTimeout(() => {
           if (token && userStr) {
             const user = JSON.parse(userStr);
-            if (user.role === 'superadmin' || user.role === 'admin') {
+            if (user.role === 'superadmin' || user.role === 'admin' || user.role === 'brigadista') {
               navigation.replace('AdminDashboard');
-            } else if (user.role === 'brigadista') {
-              navigation.replace('AdminRecycles');
             } else {
               navigation.replace('MainTabs');
             }
           } else {
-            navigation.replace('Onboarding'); // We can change this to Login or Onboarding logic
+            navigation.replace('Onboarding'); 
           }
         }, 2800);
       } catch (e) {

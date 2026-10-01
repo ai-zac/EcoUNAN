@@ -108,7 +108,7 @@ export const RecycleScreen = ({ navigation }: any) => {
   };
 
   const handleValidateQR = async () => {
-    // Flujo PRESENCIAL: registra sin foto y abre el escaner esperando al brigadista
+    
     const selected = MATERIALS.filter(m => quantities[m.id] > 0);
     if (selected.length === 0) {
       Alert.alert('Sin materiales', 'Selecciona al menos un material antes de continuar.');
@@ -218,7 +218,7 @@ export const RecycleScreen = ({ navigation }: any) => {
         />
       </View>
 
-      {/* Modal Personalizado */}
+      {}
       <Modal
         animationType="slide"
         transparent={true}
@@ -259,7 +259,7 @@ export const RecycleScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* Loading Overlay */}
+      {}
       {isSubmitting && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary} />

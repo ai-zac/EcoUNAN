@@ -89,7 +89,7 @@ export const SettingsScreen = ({ navigation }: any) => {
   );
 };
 
-// Estilos reactivos al modo activo
+
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },

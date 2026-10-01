@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { userService } from '../services/user.service';
 import User from '../models/user.model';
 
@@ -18,7 +18,7 @@ export class UserController {
     try {
       const user = await userService.getUserById(req.params.id as string);
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       res.status(200).json({ success: true, data: user });
@@ -41,11 +41,16 @@ export class UserController {
     }
   }
 
-  public async updateUser(req: Request, res: Response): Promise<void> {
+public async updateUser(req: Request, res: Response): Promise<void> {
     try {
-      const user = await userService.updateUser(req.params.id as string, req.body);
+      const allowed = ['name', 'email', 'faculty', 'career', 'studentId', 'isActive'];
+      const payload: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) payload[key] = req.body[key];
+      }
+      const user = await userService.updateUser(req.params.id as string, payload);
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       res.status(200).json({ success: true, data: user });
@@ -58,7 +63,7 @@ export class UserController {
     try {
       const user = await userService.deleteUser(req.params.id as string);
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       res.status(200).json({ success: true, data: {} });
@@ -68,33 +73,31 @@ export class UserController {
     }
   }
 
-  // @desc    Get users ranking
-  // @route   GET /api/users/ranking
-  // @access  Public/Protected
-  public async getRanking(req: Request, res: Response): Promise<void> {
+  
+  
+  
+public async getRanking(req: Request, res: Response): Promise<void> {
     try {
-      // Get top 50 users sorted by ecoPoints descending
-      const ranking = await userService.getAllUsers();
-      // Since userService.getAllUsers() might just return all, let's sort them.
-      // Better to query directly, but using service for now.
-      const sortedRanking = ranking
-        .sort((a, b) => b.ecoPoints - a.ecoPoints)
-        .slice(0, 50);
+      
+      const ranking = await User.find({ role: 'user', isActive: true })
+        .select('name ecoPoints lifetimePoints faculty profilePicture')
+        .sort({ ecoPoints: -1 })
+        .limit(50);
 
-      res.status(200).json({ success: true, data: sortedRanking });
+      res.status(200).json({ success: true, data: ranking });
     } catch (error: any) {
       console.error('[500]', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
-  // @desc    Get current user profile
-  // @route   GET /api/users/me
-  // @access  Private
+  
+  
+  
   public async getMe(req: Request, res: Response): Promise<void> {
     try {
       const user = await userService.getUserById((req as any).user.id);
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       res.status(200).json({ success: true, data: user });
@@ -104,17 +107,17 @@ export class UserController {
     }
   }
 
-  // @desc    Update current user profile
-  // @route   PUT /api/users/profile
-  // @access  Private
+  
+  
+  
   public async updateProfile(req: Request, res: Response): Promise<void> {
     try {
-      // Allow user to update certain fields like name, email, faculty, career
+      
       const { name, email, faculty, career } = req.body;
       const user = await userService.updateUser((req as any).user.id, { name, email, faculty, career });
       
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       res.status(200).json({ success: true, data: user });
@@ -122,13 +125,13 @@ export class UserController {
       res.status(400).json({ success: false, error: error.message });
     }
   }
-  // @desc    Upload profile picture
-  // @route   POST /api/users/profile/picture
-  // @access  Private
+  
+  
+  
   public async uploadProfilePicture(req: Request, res: Response): Promise<void> {
     try {
       if (!req.file) {
-        res.status(400).json({ success: false, error: 'No se subiÃ³ ninguna imagen' });
+        res.status(400).json({ success: false, error: 'No se subió ninguna imagen' });
         return;
       }
       
@@ -136,7 +139,7 @@ export class UserController {
       const user = await userService.updateUser((req as any).user.id, { profilePicture: imageUrl });
       
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
       
@@ -146,66 +149,66 @@ export class UserController {
     }
   }
 
-  // @desc    Change own password
-  // @route   PUT /api/users/password
-  // @access  Private (cualquier rol, sobre su propia cuenta)
+  
+  
+  
   public async changePassword(req: Request, res: Response): Promise<void> {
     try {
       const { currentPassword, newPassword } = req.body;
       const authUser = (req as any).user;
 
       if (!currentPassword || !newPassword) {
-        res.status(400).json({ success: false, error: 'Se requieren currentPassword y newPassword' });
+        res.status(400).json({ success: false, error: 'Se requiere la contraseña actual y la nueva contraseña' });
         return;
       }
       if (String(newPassword).length < 8) {
-        res.status(400).json({ success: false, error: 'La nueva contraseÃ±a debe tener al menos 8 caracteres' });
+        res.status(400).json({ success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres' });
         return;
       }
       if (currentPassword === newPassword) {
-        res.status(400).json({ success: false, error: 'La nueva contraseÃ±a debe ser diferente a la actual' });
+        res.status(400).json({ success: false, error: 'La nueva contraseña debe ser diferente a la actual' });
         return;
       }
 
-      // Traer el documento con el hash para poder verificar
+      
       const user = await User.findById(authUser._id).select('+password');
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
 
       const isMatch = await user.matchPassword(currentPassword);
       if (!isMatch) {
-        // 400 (no 401): evita que el interceptor de la app cierre la sesiÃ³n por error de tipeo
-        res.status(400).json({ success: false, error: 'La contraseÃ±a actual es incorrecta' });
+        
+        res.status(400).json({ success: false, error: 'La contraseña actual es incorrecta' });
         return;
       }
 
       user.password = newPassword;
-      await user.save(); // el pre-save hook la hashea
+      await user.save(); 
 
-      res.status(200).json({ success: true, message: 'ContraseÃ±a actualizada correctamente' });
+      res.status(200).json({ success: true, message: 'Contraseña actualizada correctamente' });
     } catch (error: any) {
       console.error('[500]', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
-  // @desc    Save Expo Push Token
-  // @route   PUT /api/users/push-token
-  // @access  Private
+  
+  
+  
   public async savePushToken(req: Request, res: Response): Promise<void> {
     try {
       const { expoPushToken } = req.body;
       if (!expoPushToken) {
-        res.status(400).json({ success: false, error: 'expoPushToken is required' });
+        res.status(400).json({ success: false, error: 'El token de notificación (expoPushToken) es requerido' });
         return;
       }
 
       const user = await userService.updateUser((req as any).user.id, { expoPushToken });
       
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         return;
       }
 

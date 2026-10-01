@@ -11,13 +11,8 @@ import { RecycleService } from '../api/services/recycle.service';
 import { API_BASE_URL } from '../api/apiClient';
 
 import { userService } from '../api/services/user.service';
+import { getUserRank } from '../utils/ranks';
 
-const getLevelInfo = (points: number) => {
-  if (points < 500) return { level: 'Nivel 1', title: 'Principiante' };
-  if (points < 1000) return { level: 'Nivel 2', title: 'Eco Amigo' };
-  if (points < 2000) return { level: 'Nivel 3', title: 'Reciclador' };
-  return { level: 'Nivel 4', title: 'Eco Hero' };
-};
 
 const MENU_ITEMS = [
   { id: 'edit', title: 'Editar perfil', icon: UserIcon, color: '#3B82F6', bg: '#EFF6FF' },
@@ -38,7 +33,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   const fadeAnimStats = useRef(new Animated.Value(0)).current;
   const slideAnimStats = useRef(new Animated.Value(30)).current;
   
-  // Array of Animated values for each menu item (including logout)
+  
   const menuFades = useRef([...MENU_ITEMS, 'logout'].map(() => new Animated.Value(0))).current;
   const menuSlides = useRef([...MENU_ITEMS, 'logout'].map(() => new Animated.Value(20))).current;
 
@@ -52,19 +47,19 @@ export const ProfileScreen = ({ navigation }: any) => {
       loadUserData();
     });
     
-    // 1. Header bounce animation
+    
     Animated.parallel([
       Animated.timing(fadeAnimHeader, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.spring(scaleAnimHeader, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
     ]).start();
 
-    // 2. Stats row slide up
+    
     Animated.parallel([
       Animated.timing(fadeAnimStats, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
       Animated.spring(slideAnimStats, { toValue: 0, tension: 50, friction: 7, delay: 100, useNativeDriver: true }),
     ]).start();
 
-    // 3. Staggered menu list
+    
     const menuAnimations = menuFades.map((fade, i) => {
       return Animated.parallel([
         Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -81,18 +76,18 @@ export const ProfileScreen = ({ navigation }: any) => {
 
   const loadUserData = async () => {
     try {
-      // First try to load from backend
+      
       try {
         const liveUser = await userService.getMe();
         setUser(liveUser);
         await AsyncStorage.setItem('@user_data', JSON.stringify(liveUser));
       } catch (err) {
-        // Fallback to storage
+        
         const userData = await AsyncStorage.getItem('@user_data');
         if (userData) setUser(JSON.parse(userData));
       }
 
-      // Fetch history stats
+      
       const history = await RecycleService.getHistory();
       setRecycleCount(history.length);
       const weight = history.reduce((sum, item) => sum + (item.totalWeight || (item as any).weight || 0), 0);
@@ -114,31 +109,48 @@ export const ProfileScreen = ({ navigation }: any) => {
     navigation.replace('Login');
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+  const handleImageResult = async (result: ImagePicker.ImagePickerResult) => {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      try {
         setIsUploading(true);
         const updatedUser = await userService.uploadProfilePicture(result.assets[0].uri);
         setUser(updatedUser);
         await AsyncStorage.setItem('@user_data', JSON.stringify(updatedUser));
         Alert.alert('Éxito', 'Foto de perfil actualizada');
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+      } finally {
+        setIsUploading(false);
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
-    } finally {
-      setIsUploading(false);
     }
   };
 
-  const levelInfo = getLevelInfo(user?.ecoPoints || 0);
+  const pickImage = () => {
+    Alert.alert('Cambiar foto', '¿De dónde quieres obtener la imagen?', [
+      { 
+        text: 'Tomar foto', 
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso denegado', 'Se requiere acceso a la cámara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          handleImageResult(result);
+        }
+      },
+      { 
+        text: 'Elegir de galería', 
+        onPress: async () => {
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          handleImageResult(result);
+        }
+      },
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
+
 
   const getProfileImageUrl = (profilePicture?: string) => {
     if (!profilePicture) return null;
@@ -150,7 +162,7 @@ export const ProfileScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
         
-        {/* Header / User Info */}
+        {}
         <Animated.View style={[styles.header, { opacity: fadeAnimHeader, transform: [{ scale: scaleAnimHeader }] }]}>
           <TouchableOpacity style={styles.avatar} onPress={pickImage} disabled={isUploading}>
             {isUploading ? (
@@ -182,12 +194,14 @@ export const ProfileScreen = ({ navigation }: any) => {
             <Text style={styles.statLabel}>Reciclado</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{levelInfo.level}</Text>
-            <Text style={styles.statLabel}>{levelInfo.title}</Text>
+            <Text style={styles.statValue}>{getUserRank((user as any)?.lifetimePoints || user?.ecoPoints || 0).currentRank.icon}</Text>
+            <Text style={[styles.statLabel, { color: getUserRank((user as any)?.lifetimePoints || user?.ecoPoints || 0).currentRank.color, fontWeight: 'bold' }]}>
+              {getUserRank((user as any)?.lifetimePoints || user?.ecoPoints || 0).currentRank.name}
+            </Text>
           </View>
         </Animated.View>
 
-        {/* Menu List */}
+        {}
         <View style={styles.menuContainer}>
           {MENU_ITEMS.map((item, index) => {
             const Icon = item.icon;
@@ -225,7 +239,7 @@ export const ProfileScreen = ({ navigation }: any) => {
             );
           })}
 
-          {/* Logout Button */}
+          {}
           <Animated.View style={{ opacity: menuFades[MENU_ITEMS.length], transform: [{ translateY: menuSlides[MENU_ITEMS.length] }] }}>
             <TouchableOpacity 
               style={[styles.menuItem, { borderBottomWidth: 0, marginTop: theme.spacing.m }]}
@@ -245,7 +259,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   );
 };
 
-// Estilos reactivos al modo activo
+
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { padding: theme.spacing.m, paddingBottom: 100 },

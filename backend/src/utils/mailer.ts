@@ -1,35 +1,44 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-/**
- * Envia un email. Si hay credenciales SMTP en .env usa el transporte real;
- * si no, imprime el contenido en consola (modo desarrollo).
- */
-export async function sendMail(to: string, subject: string, html: string): Promise<void> {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    const codeMatch = html.match(/\b(\d{6})\b/);
-    console.log('──────────────────────────────────────────────');
-    console.log(`[mail:DEV] Para: ${to}`);
-    console.log(`[mail:DEV] Asunto: ${subject}`);
-    if (codeMatch) {
-      console.log(`[mail:DEV] CODIGO DE RECUPERACION: ${codeMatch[1]} (solo modo desarrollo)`);
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[mailer] FATAL: RESEND_API_KEY environment variable is not set');
+      throw new Error('RESEND_API_KEY is required in production');
+    } else {
+      console.log('[mailer] INFO: RESEND_API_KEY no configurada. Códigos de recuperación saldrán por consola (DEV mode).');
     }
-    console.log('──────────────────────────────────────────────');
-    return;
   }
+  return new Resend(apiKey || 'placeholder-will-fail');
+}
 
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT) || 587,
-    secure: Number(SMTP_PORT) === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
+export async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  const from = process.env.EMAIL_FROM || 'Soporte EcoUNAN <soporte@ecounan.app>';
+  const resend = getResendClient();
 
-  await transporter.sendMail({
-    from: SMTP_FROM || `"EcoUNAN" <${SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
+  try {
+    const data = await resend.emails.send({
+      from,
+      to: [to],
+      replyTo: process.env.EMAIL_REPLY_TO || 'soporte@ecounan.app',
+      subject,
+      html,
+    });
+
+    console.log(`[mail:RESEND] Correo enviado exitosamente a ${to}. ID:`, JSON.stringify(data));
+  } catch (error) {
+    console.error(`[mail:RESEND] Error enviando correo a ${to}:`, error);
+    
+    if (process.env.NODE_ENV !== 'production') {
+      const codeMatch = html.match(/\b(\d{6})\b/);
+      if (codeMatch) {
+        console.log('──────────────────────────────────────────────');
+        console.log(`[mail:DEV-FALLBACK] Para: ${to}`);
+        console.log(`[mail:DEV-FALLBACK] Asunto: ${subject}`);
+        console.log(`[mail:DEV-FALLBACK] CODIGO DE RECUPERACION: ${codeMatch[1]}`);
+        console.log('──────────────────────────────────────────────');
+      }
+    }
+  }
 }

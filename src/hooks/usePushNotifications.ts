@@ -1,34 +1,48 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsTypes from 'expo-notifications';
 import Constants from 'expo-constants';
 import { apiClient } from '../api/apiClient';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+const isExpoGoAndroid = Platform.OS === 'android' && (Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient');
+
+let Notifications: typeof NotificationsTypes | null = null;
+
+if (!isExpoGoAndroid) {
+  try {
+    Notifications = require('expo-notifications');
+    Notifications?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    console.warn('Could not load expo-notifications', e);
+  }
+}
 
 export const usePushNotifications = (userToken?: string) => {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
-  const [notification, setNotification] = useState<Notifications.Notification | false>(false);
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
+  const [notification, setNotification] = useState<NotificationsTypes.Notification | false>(false);
+  const notificationListener = useRef<NotificationsTypes.Subscription | null>(null);
+  const responseListener = useRef<NotificationsTypes.Subscription | null>(null);
 
   useEffect(() => {
-    // Solo pedir permisos e intentar registrar si tenemos una sesión (token de usuario)
+    if (isExpoGoAndroid || !Notifications) {
+      console.log('Skipping push notifications setup on Android Expo Go');
+      return;
+    }
+    
     if (!userToken) return;
 
     registerForPushNotificationsAsync().then(token => {
       setExpoPushToken(token);
       if (token) {
-        // Enviar el token al backend
         apiClient.put('/users/push-token', { expoPushToken: token })
           .then(() => console.log('Push token saved on server'))
           .catch(err => console.error('Error saving push token', err));
@@ -45,11 +59,11 @@ export const usePushNotifications = (userToken?: string) => {
 
     return () => {
       if (notificationListener.current) {
-        (Notifications as any).removeNotificationSubscription?.(notificationListener.current);
+        (Notifications as any)?.removeNotificationSubscription?.(notificationListener.current);
         (notificationListener.current as any)?.remove?.();
       }
       if (responseListener.current) {
-        (Notifications as any).removeNotificationSubscription?.(responseListener.current);
+        (Notifications as any)?.removeNotificationSubscription?.(responseListener.current);
         (responseListener.current as any)?.remove?.();
       }
     };
@@ -59,6 +73,8 @@ export const usePushNotifications = (userToken?: string) => {
 };
 
 async function registerForPushNotificationsAsync() {
+  if (!Notifications) return undefined;
+  
   let token;
 
   if (Platform.OS === 'android') {
@@ -81,9 +97,7 @@ async function registerForPushNotificationsAsync() {
       console.log('Failed to get push token for push notification!');
       return;
     }
-    // Learn more about projectId:
-    // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
-    // Normally it uses the projectId from app.json
+    
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;

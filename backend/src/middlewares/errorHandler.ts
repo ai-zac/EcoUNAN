@@ -1,17 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 
-/**
- * Global Error Handler: atrapa TODA excepcion no manejada y estandariza
- * la respuesta JSON. Nunca expone detalles internos al cliente.
- */
 export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction): void {
-  // Log completo solo en el servidor
+  
   console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err?.message || err);
 
   let status = err?.status || err?.statusCode || 500;
   let message = 'Error interno del servidor';
 
-  // Errores conocidos de Mongoose -> mensajes seguros
+  
   if (err?.name === 'ValidationError') {
     status = 400;
     message = Object.values(err.errors || {})
@@ -24,7 +20,7 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
     status = 400;
     message = 'Ya existe un registro con esos datos únicos';
   } else if (status === 401 || status === 403 || status === 404) {
-    // Respuestas de negocio que si incluyen mensaje seguro
+    
     message = typeof err?.message === 'string' ? err.message : message;
   }
 

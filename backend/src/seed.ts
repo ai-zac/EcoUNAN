@@ -6,9 +6,7 @@ import Reward from './models/reward.model';
 import Recycle from './models/recycle.model';
 import Goal from './models/goal.model';
 import Notification from './models/notification.model';
-import CampusBin from './models/campusBin.model';
 import Redemption from './models/redemption.model';
-import { signBinQr } from './utils/qr';
 
 dotenv.config();
 
@@ -22,7 +20,7 @@ const seedDatabase = async () => {
     await mongoose.connect(process.env.MONGO_URI as string);
     console.log('Conexion exitosa a MongoDB!');
 
-    // Limpiar datos existentes
+    
     console.log('Limpiando base de datos...');
     await Promise.all([
       User.deleteMany(),
@@ -30,11 +28,10 @@ const seedDatabase = async () => {
       Recycle.deleteMany(),
       Goal.deleteMany(),
       Notification.deleteMany(),
-      CampusBin.deleteMany(),
       Redemption.deleteMany(),
     ]);
 
-    // --- Usuarios (superadmin + staff + demos para el ranking) ---
+    
     console.log('Creando usuarios...');
     await User.create([
       {
@@ -130,7 +127,7 @@ const seedDatabase = async () => {
     const users = await User.find({ role: 'user' });
     const admin = await User.findOne({ role: 'admin' });
 
-    // --- Recompensas (con iconos que espera la app) ---
+    
     console.log('Creando recompensas...');
     await Reward.insertMany([
       {
@@ -185,7 +182,7 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // --- Metas / Goals ---
+    
     console.log('Creando metas...');
     await Goal.insertMany([
       {
@@ -214,46 +211,44 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // --- Notificaciones globales (visibles para todos) ---
+    
     console.log('Creando notificaciones...');
-    await Notification.insertMany([
-      {
-        user: null,
-        title: 'Bienvenido a EcoUnan!',
-        message: 'Gracias por sumarte. Escanea los QR de los basureros inteligentes para ganar puntos.',
+    const seedNotifications: any[] = [];
+    for (const u of users) {
+      seedNotifications.push(
+        {
+          user: u._id,
+          title: '¡Bienvenido a EcoUNAN! 🌱',
+          message: 'Gracias por sumarte. Escanea los QR de los centros de acopio autorizados para ganar puntos.',
+          isRead: false,
+        },
+        {
+          user: u._id,
+          title: 'Nueva meta disponible 🎯',
+          message: 'Participa en la Semana del Plástico Cero y gana 100 puntos extra.',
+          isRead: false,
+        },
+        {
+          user: u._id,
+          title: 'Nuevas recompensas en la tienda 🎁',
+          message: 'Ya disponibles: termos, camisetas ecológicas y kits de libretas.',
+          isRead: false,
+        }
+      );
+    }
+    if (admin) {
+      seedNotifications.push({
+        user: admin._id,
+        title: 'Panel de administrador listo ⚙️',
+        message: 'Puedes validar reciclajes pendientes desde el panel de administración.',
         isRead: false,
-      },
-      {
-        user: null,
-        title: 'Nueva meta disponible',
-        message: 'Participa en la Semana del Plastico Cero y gana 100 puntos extra.',
-        isRead: false,
-      },
-      {
-        user: null,
-        title: 'Nuevas recompensas en la tienda',
-        message: 'Ya disponibles: termos, camisetas ecologicas y kits de libretas.',
-        isRead: false,
-      },
-      {
-        user: (admin?._id ?? null),
-        title: 'Panel de administrador listo',
-        message: 'Puedes validar reciclajes pendientes desde el panel de administracion.',
-        isRead: false,
-      },
-    ]);
+      });
+    }
+    await Notification.insertMany(seedNotifications);
 
-    // --- Basureros inteligentes del campus (QRs firmados con HMAC) ---
-    console.log('Creando basureros del campus...');
 
-    await CampusBin.insertMany([
-      { name: 'Basurero Plasticos FAREM', locationDescription: 'Entrada principal FAREM, frente a cafeteria', binType: 'plastic', qrCode: signBinQr('pet', 2), status: 'active' },
-      { name: 'Basurero Aluminio FEC', locationDescription: 'Pasillo central FEC, segundo piso', binType: 'metal', qrCode: signBinQr('aluminio', 1), status: 'active' },
-      { name: 'Basurero Papel Biblioteca', locationDescription: 'Junto a la entrada de la biblioteca central', binType: 'paper', qrCode: signBinQr('papel', 3), status: 'active' },
-      { name: 'Basurero Mixto Cancha', locationDescription: 'Esquina noroeste de la cancha multiuso', binType: 'mixed', qrCode: signBinQr('carton', 2), status: 'active' },
-    ]);
 
-    // --- Historial de reciclajes (registros validos para historial y dashboard) ---
+    
     console.log('Creando registros de reciclaje...');
     const recycleDocs = [
       { u: 0, material: 'pet' as const, w: 2.5, d: 6 },
@@ -280,13 +275,13 @@ const seedDatabase = async () => {
         totalWeight: r.w,
         totalPoints: Math.floor(r.w * 10),
         status: r.d <= 1 ? 'pending' : 'validated',
-        description: 'Reciclaje registrado en basurero inteligente',
+        description: 'Reciclaje registrado (manual)',
       }))
     );
 
     console.log('Base de datos poblada exitosamente!');
     console.log('--------------------------------------------');
-    console.log('Colecciones listas: users, rewards, goals, notifications, campusbins, recycles');
+    console.log('Colecciones listas: users, rewards, goals, notifications, recycles');
     console.log('SuperAdmin: superadmin@ecounan.edu.ni / SuperAdmin2026!');
     console.log('Admin: admin@ecounan.edu.ni / password123');
     console.log('Brigadista: brigada@ecounan.edu.ni / Brigada2026!');

@@ -1,42 +1,66 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Recycle from '../models/recycle.model';
 import User from '../models/user.model';
 import { notifyUser } from '../services/notification.service';
-import { verifyBinQr, signApprovalQr, verifyApprovalQr } from '../utils/qr';
+import { signApprovalQr, verifyApprovalQr } from '../utils/qr';
+import { checkAndNotifyRankUpgrade } from '../utils/ranks';
 
 const VALID_MATERIALS = ['pet', 'aluminio', 'papel', 'carton', 'plastico'];
 
 export class RecycleController {
-  
-  // User: Registers a new recycle action (pending validation)
+
   public async registerRecycle(req: Request, res: Response): Promise<void> {
     try {
+      console.log('[registerRecycle] Body:', req.body);
+      console.log('[registerRecycle] File:', req.file ? { filename: req.file.filename, mimetype: req.file.mimetype, size: req.file.size } : 'No file');
       const { items, description, validationMode } = req.body;
       const user = (req as any).user;
 
       if (!user || !items) {
-        res.status(400).json({ success: false, error: 'Missing user or items' });
+        console.error('[registerRecycle:400] Missing user or items:', { user: !!user, items: !!items });
+        res.status(400).json({ success: false, error: 'Faltan datos de usuario o lista de materiales' });
         return;
       }
 
       const mode = validationMode === 'inperson' ? 'inperson' : 'photo';
-      // El modo foto exige evidencia; el presencial la verificara el brigadista
+
       if (mode === 'photo' && !req.file) {
+        console.error('[registerRecycle:400] Missing proofImage file');
         res.status(400).json({ success: false, error: 'La foto de evidencia es obligatoria' });
         return;
       }
 
       const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-      
+
+      if (!Array.isArray(parsedItems) || parsedItems.length === 0 || parsedItems.length > 20) {
+        console.error('[registerRecycle:400] Invalid items array:', parsedItems);
+        res.status(400).json({ success: false, error: 'items debe ser un array de 1 a 20 elementos' });
+        return;
+      }
+      for (const item of parsedItems) {
+        if (!VALID_MATERIALS.includes(item.materialType)) {
+          console.error('[registerRecycle:400] Invalid material:', item.materialType);
+          res.status(400).json({ success: false, error: `Material inválido: ${item.materialType}. Válidos: ${VALID_MATERIALS.join(', ')}` });
+          return;
+        }
+        const w = Number(item.weight);
+        if (!Number.isFinite(w) || w <= 0 || w > 9999) {
+          console.error('[registerRecycle:400] Invalid weight/quantity:', item.weight);
+          res.status(400).json({ success: false, error: 'La cantidad debe ser un número positivo' });
+          return;
+        }
+      }
+
       let totalWeight = 0;
       let totalPoints = 0;
-      
+
       const processedItems = parsedItems.map((item: any) => {
         const weight = Number(item.weight);
         const pointsEarned = Math.floor(weight * 10);
         totalWeight += weight;
         totalPoints += pointsEarned;
-        
+
         return {
           materialType: item.materialType,
           weight,
@@ -62,16 +86,16 @@ export class RecycleController {
 
       res.status(201).json({ success: true, data: recycle });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      console.error('[registerRecycle:catch 400]', error);
+      res.status(400).json({ success: false, error: error.message || 'Error al procesar el registro' });
     }
   }
 
-  // Admin: Get all pending recycles
   public async getPendingRecycles(req: Request, res: Response): Promise<void> {
     try {
       const pendingRecycles = await Recycle.find({ status: 'pending' })
         .populate('user', 'name email')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: 1 });
 
       res.status(200).json({ success: true, data: pendingRecycles });
     } catch (error: any) {
@@ -80,7 +104,6 @@ export class RecycleController {
     }
   }
 
-  // User: Get personal recycle history
   public async getUserHistory(req: Request, res: Response): Promise<void> {
     try {
       const user = (req as any).user;
@@ -89,70 +112,68 @@ export class RecycleController {
         return;
       }
 
-      const history = await Recycle.find({ user: user._id })
-        .sort({ createdAt: -1 });
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 30));
+      const skip = (page - 1) * limit;
 
-      res.status(200).json({ success: true, data: history });
+      const history = await Recycle.find({ user: user._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.status(200).json({
+        success: true,
+        data: history,
+        pagination: {
+          page,
+          limit
+        }
+      });
     } catch (error: any) {
       console.error('[500]', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   }
 
-  // User: Scan QR to automatically validate recycling
-  public async scanQR(req: Request, res: Response): Promise<void> {
+  public async getUserStats(req: Request, res: Response): Promise<void> {
     try {
-      const { qrData } = req.body;
-      const user = (req as any).user;
-
-      if (!user) {
-        res.status(401).json({ success: false, error: 'Not authorized' });
-        return;
-      }
-      if (typeof qrData !== 'string' || !qrData.trim()) {
-        res.status(400).json({ success: false, error: 'qrData es obligatorio' });
+      const id = req.params.id as string;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({ success: false, error: 'ID de usuario inválido' });
         return;
       }
 
-      // Verificacion HMAC + estructura: rechaza QR falsificados o manipulados
-      const verified = verifyBinQr(qrData);
-      if (!verified) {
-        res.status(400).json({ success: false, error: 'QR invÃ¡lido o no autorizado' });
-        return;
-      }
-      if (!VALID_MATERIALS.includes(verified.material)) {
-        res.status(400).json({ success: false, error: 'Material del QR no reconocido' });
-        return;
-      }
+      const stats = await Recycle.aggregate([
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(id),
+            status: 'validated'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            recycleCount: { $sum: 1 },
+            totalWeight: { $sum: '$totalWeight' }
+          }
+        }
+      ]);
 
-      const weight = verified.weight;
-      const pointsEarned = Math.floor(weight * 10);
+      const data = stats[0] || { recycleCount: 0, totalWeight: 0 };
 
-      const processedItems = [{
-        materialType: verified.material as 'pet' | 'aluminio' | 'papel' | 'carton' | 'plastico',
-        weight,
-        pointsEarned
-      }];
-
-      const recycle = await Recycle.create({
-        user: user._id,
-        items: processedItems,
-        totalWeight: weight,
-        totalPoints: pointsEarned,
-        status: 'validated'
+      res.status(200).json({
+        success: true,
+        data: {
+          recycleCount: data.recycleCount,
+          totalWeight: Math.round(data.totalWeight * 100) / 100
+        }
       });
-
-      // Puntos ATOMICOS
-      await User.findByIdAndUpdate(user._id, { $inc: { ecoPoints: pointsEarned } });
-
-      res.status(200).json({ success: true, data: recycle });
-    } catch (error) {
-      console.error('[scanQR]', error);
-      res.status(500).json({ success: false, error: 'Error interno al procesar el QR' });
+    } catch (error: any) {
+      console.error('[getUserStats]', error);
+      res.status(500).json({ success: false, error: 'Error obteniendo estadisticas' });
     }
   }
 
-  // Brigadista/Admin: genera QR efimero de aprobacion presencial
   public async getApprovalQr(req: Request, res: Response): Promise<void> {
     try {
       const recycle = await Recycle.findById(req.params.id);
@@ -176,7 +197,6 @@ export class RecycleController {
     }
   }
 
-  // Estudiante: confirma su reciclaje presencial escaneando el QR del brigadista
   public async confirmPresential(req: Request, res: Response): Promise<void> {
     try {
       const { qrData } = req.body;
@@ -207,17 +227,20 @@ export class RecycleController {
         return;
       }
 
-      // Transicion atomica + puntos atomicos
       const validated = await Recycle.findOneAndUpdate(
         { _id: recycle._id, status: 'pending' },
-        { status: 'validated' },
-        { new: true }
+        { status: 'validated', validatedBy: user._id },
+        { returnDocument: 'after' }
       );
       if (!validated) {
         res.status(409).json({ success: false, error: 'Esta solicitud acaba de ser procesada' });
         return;
       }
-      await User.findByIdAndUpdate(user._id, { $inc: { ecoPoints: recycle.totalPoints } });
+      const targetUser = await User.findById(user._id);
+      const prevLifetimePoints = targetUser?.lifetimePoints || 0;
+      const newLifetimePoints = prevLifetimePoints + recycle.totalPoints;
+
+      await User.findByIdAndUpdate(user._id, { $inc: { ecoPoints: recycle.totalPoints, lifetimePoints: recycle.totalPoints } });
 
       await notifyUser(
         String(recycle.user),
@@ -225,7 +248,8 @@ export class RecycleController {
         `Tu entrega presencial fue verificada. Ganaste +${recycle.totalPoints} puntos.`
       );
 
-      // pointsEarned de primer nivel para consumo directo del frontend
+      await checkAndNotifyRankUpgrade(String(user._id), prevLifetimePoints, newLifetimePoints);
+
       res.status(200).json({
         success: true,
         pointsEarned: recycle.totalPoints,
@@ -237,7 +261,6 @@ export class RecycleController {
     }
   }
 
-// Admin: Validate a recycle action and award points
   public async validateRecycle(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -245,35 +268,38 @@ export class RecycleController {
       const recycle = await Recycle.findById(id);
 
       if (!recycle) {
-        res.status(404).json({ success: false, error: 'Recycle record not found' });
+        res.status(404).json({ success: false, error: 'Registro de reciclaje no encontrado' });
         return;
       }
 
       if (recycle.status !== 'pending') {
-        res.status(400).json({ success: false, error: 'Recycle record is not pending' });
+        res.status(400).json({ success: false, error: 'El registro de reciclaje ya no está pendiente' });
         return;
       }
 
-      // Transicion atomica: solo se valida si estaba pendiente
       const validated = await Recycle.findOneAndUpdate(
         { _id: recycle._id, status: 'pending' },
-        { status: 'validated' },
-        { new: true }
+        { status: 'validated', validatedBy: (req as any).user._id },
+        { returnDocument: 'after' }
       );
       if (!validated) {
         res.status(409).json({ success: false, error: 'Este registro acaba de ser procesado por otro operador' });
         return;
       }
 
-      // Puntos atomicos
-      await User.findByIdAndUpdate(recycle.user, { $inc: { ecoPoints: recycle.totalPoints } });
+      const targetUser = await User.findById(recycle.user);
+      const prevLifetimePoints = targetUser?.lifetimePoints || 0;
+      const newLifetimePoints = prevLifetimePoints + recycle.totalPoints;
 
-      // Notificar al usuario (in-app + push)
+      await User.findByIdAndUpdate(recycle.user, { $inc: { ecoPoints: recycle.totalPoints, lifetimePoints: recycle.totalPoints } });
+
       await notifyUser(
         String(recycle.user),
         '¡Reciclaje aprobado! ♻️',
         `Ganaste +${recycle.totalPoints} puntos por tu reciclaje. ¡Sigue así!`
       );
+
+      await checkAndNotifyRankUpgrade(String(recycle.user), prevLifetimePoints, newLifetimePoints);
 
       res.status(200).json({ success: true, data: validated });
     } catch (error) {
@@ -282,7 +308,6 @@ export class RecycleController {
     }
   }
 
-  // Admin: Reject a recycle action
   public async rejectRecycle(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -290,27 +315,25 @@ export class RecycleController {
       const recycle = await Recycle.findById(id);
 
       if (!recycle) {
-        res.status(404).json({ success: false, error: 'Recycle record not found' });
+        res.status(404).json({ success: false, error: 'Registro de reciclaje no encontrado' });
         return;
       }
 
       if (recycle.status !== 'pending') {
-        res.status(400).json({ success: false, error: 'Recycle record is not pending' });
+        res.status(400).json({ success: false, error: 'El registro de reciclaje ya no está pendiente' });
         return;
       }
 
-      // Transicion atomica: solo se rechaza si estaba pendiente
       const rejected = await Recycle.findOneAndUpdate(
         { _id: recycle._id, status: 'pending' },
         { status: 'rejected' },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!rejected) {
         res.status(409).json({ success: false, error: 'Este registro acaba de ser procesado por otro operador' });
         return;
       }
 
-      // Notificar al usuario (in-app + push)
       await notifyUser(
         String(recycle.user),
         'Reciclaje rechazado',
@@ -326,4 +349,3 @@ export class RecycleController {
 }
 
 export const recycleController = new RecycleController();
-

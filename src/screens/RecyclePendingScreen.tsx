@@ -21,14 +21,14 @@ export const RecyclePendingScreen = ({ navigation }: any) => {
     );
     loop.start();
 
-    // Polling logic
+    
     let intervalId: NodeJS.Timeout;
 
     const checkStatus = async () => {
       try {
         const history = await RecycleService.getHistory();
         if (history && history.length > 0) {
-          // Asumimos que el primer elemento es el más reciente (ordenado por fecha desc)
+          
           const latest = history[0];
           if (latest.status === 'validated') {
             setIsChecking(false);
@@ -41,8 +41,8 @@ export const RecyclePendingScreen = ({ navigation }: any) => {
       }
     };
 
-    intervalId = setInterval(checkStatus, 3000); // Poll every 3 seconds
-    checkStatus(); // Initial check
+    intervalId = setInterval(checkStatus, 3000); 
+    checkStatus(); 
 
     return () => {
       loop.stop();

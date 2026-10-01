@@ -16,6 +16,7 @@ export interface RecentActivity {
   type: string;
   color: string;
   user?: string;
+  details?: any;
 }
 
 export interface DashboardData {
@@ -34,7 +35,17 @@ export const AdminService = {
     }
   },
 
-  // Users Management
+  getActivityLog: async (type: string = 'all', period: string = 'all'): Promise<RecentActivity[]> => {
+    try {
+      const response = await apiClient.get<{success: boolean, data: RecentActivity[]}>(`/admin/activity?type=${type}&period=${period}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching activity log:', error);
+      throw error;
+    }
+  },
+
+  
   getUsers: async (): Promise<User[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: User[]}>('/users');
@@ -45,7 +56,7 @@ export const AdminService = {
     }
   },
 
-  // ===== Gestion de staff (solo superadmin) =====
+  
   searchUsers: async (search: string = '', status: '' | 'active' | 'inactive' = ''): Promise<User[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: User[]}>('/staff/users', {
@@ -99,7 +110,7 @@ export const AdminService = {
     }
   },
 
-  // Recycle Management
+  
   getPendingRecycles: async (): Promise<RecycleRecord[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: RecycleRecord[]}>('/recycles/pending');
@@ -128,7 +139,7 @@ export const AdminService = {
     }
   },
 
-  // ===== Historial global de canjes (admin y superadmin) =====
+  
   getAllRedemptions: async (): Promise<any[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: any[]}>('/admin/redemptions');
@@ -148,6 +159,16 @@ export const AdminService = {
     }
   },
 
+  scanRedemptionQR: async (qrCodeData: string): Promise<any> => {
+    try {
+      const response = await apiClient.post('/admin/redemptions/scan', { qrCodeData });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error scanning redemption QR:', error);
+      throw error;
+    }
+  },
+
   cancelRedemption: async (id: string): Promise<void> => {
     try {
       await apiClient.put(`/admin/redemptions/${id}/cancel`);
@@ -157,7 +178,7 @@ export const AdminService = {
     }
   },
 
-  // ===== Gestion de metas (admin y superadmin) =====
+  
   getGoalsAdmin: async (): Promise<Goal[]> => {
     try {
       const response = await apiClient.get<{success: boolean, data: Goal[]}>('/goals', {

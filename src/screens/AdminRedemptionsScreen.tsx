@@ -23,8 +23,11 @@ export const AdminRedemptionsScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchRedemptions();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchRedemptions();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchRedemptions = async () => {
     try {
@@ -88,34 +91,36 @@ export const AdminRedemptionsScreen = ({ navigation }: any) => {
     const userName = typeof item.user === 'object' ? item.user.name : 'Usuario';
     const userEmail = typeof item.user === 'object' ? item.user.email : '';
     const rewardTitle = typeof item.reward === 'object' ? item.reward.title : 'Recompensa';
+    const validatorName = typeof item.validatedBy === 'object' ? item.validatedBy.name : null;
+    const validatorRole = typeof item.validatedBy === 'object' ? item.validatedBy.role : null;
 
     return (
       <View style={styles.card}>
-        <View style={styles.iconBox}>
-          <Gift size={20} color="#D97706" />
-        </View>
-        <View style={styles.info}>
-          <Text style={styles.rewardTitle}>{rewardTitle}</Text>
-          <Text style={styles.userName}>por {userName}</Text>
-          {!!userEmail && <Text style={styles.userEmail}>{userEmail}</Text>}
-          <View style={styles.metaRow}>
-            <View style={[styles.badge, { backgroundColor: status.bg }]}>
-              <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
-            </View>
-            <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+        <View style={styles.cardTopRow}>
+          <View style={styles.iconBox}>
+            <Gift size={20} color="#D97706" />
           </View>
+          <View style={styles.info}>
+            <Text style={styles.rewardTitle}>{rewardTitle}</Text>
+            <Text style={styles.userName}>por {userName}</Text>
+            {!!userEmail && <Text style={styles.userEmail}>{userEmail}</Text>}
+            <View style={styles.metaRow}>
+              <View style={[styles.badge, { backgroundColor: status.bg }]}>
+                <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
+              </View>
+              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+            </View>
+            {item.status === 'completed' && validatorName && (
+              <Text style={styles.validatedByText}>
+                Entregado por: {validatorName} ({validatorRole})
+              </Text>
+            )}
+          </View>
+          <Text style={styles.points}>-{item.pointsSpent} pts</Text>
         </View>
-        <Text style={styles.points}>-{item.pointsSpent} pts</Text>
 
         {item.status === 'pending' && (
           <View style={[styles.actionsRow, styles.actionsRowCard]}>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionComplete]}
-              onPress={() => handleComplete(item._id, rewardTitle)}
-            >
-              <CheckCircle size={15} color="#FFFFFF" />
-              <Text style={styles.actionTextWhite}>Completar</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, styles.actionCancel]}
               onPress={() => handleCancel(item._id, rewardTitle, item.pointsSpent)}
@@ -140,6 +145,12 @@ export const AdminRedemptionsScreen = ({ navigation }: any) => {
           <ShoppingBag size={13} color={colors.accent} />
           <Text style={styles.totalText}>{redemptions.length}</Text>
         </View>
+        <TouchableOpacity 
+          style={styles.scanButton} 
+          onPress={() => navigation.navigate('QRScanner', { scanningRedemption: true })}
+        >
+          <Text style={styles.scanButtonText}>Escanear QR</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -185,16 +196,27 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.round,
   },
   totalText: { fontSize: 13, fontWeight: '800', color: colors.text },
+  scanButton: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+  scanButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 13 },
 
   listContainer: { padding: theme.spacing.l, gap: theme.spacing.m },
 
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     backgroundColor: colors.surface,
     padding: theme.spacing.m,
     borderRadius: theme.borderRadius.m,
     ...theme.shadows.soft,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   iconBox: {
     width: 44, height: 44, borderRadius: 22,
@@ -211,6 +233,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: 'bold' },
   date: { ...theme.typography.caption },
   points: { fontSize: 15, fontWeight: '900', color: '#D97706' },
+  validatedByText: { fontSize: 11, color: '#16A34A', fontWeight: '600', marginTop: 4 },
 
   actionsRow: { flexDirection: 'row' },
   actionsRowCard: {

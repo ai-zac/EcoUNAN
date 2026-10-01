@@ -22,7 +22,7 @@ const createAdmin = async () => {
     const admin = await User.create({
       name: 'Admin Principal',
       email: email,
-      password: 'adminpassword123', // El modelo User tiene un pre-save hook que la encriptará
+      password: 'adminpassword123', 
       role: 'admin'
     });
 

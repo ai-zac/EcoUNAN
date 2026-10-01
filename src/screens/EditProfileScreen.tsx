@@ -5,8 +5,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
+import { SelectInput } from '../components/SelectInput';
+import { DEPARTMENTS } from '../constants/departments';
 import { userService } from '../api/services/user.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../api/apiClient';
 
 export const EditProfileScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
@@ -52,8 +55,8 @@ export const EditProfileScreen = ({ navigation }: any) => {
   };
 
   const handleSave = async () => {
-    if (!name || !email) {
-      Alert.alert('Error', 'El nombre y correo son obligatorios');
+    if (!name || !email || !faculty || !career) {
+      Alert.alert('Campos incompletos', 'Todos los campos son obligatorios. Asegúrate de seleccionar departamento y carrera.');
       return;
     }
 
@@ -72,33 +75,51 @@ export const EditProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+  const handleImageResult = async (result: ImagePicker.ImagePickerResult) => {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      try {
         setIsUploading(true);
         const updatedUser = await userService.uploadProfilePicture(result.assets[0].uri);
         setProfilePicture((updatedUser as any).profilePicture);
         await AsyncStorage.setItem('@user_data', JSON.stringify(updatedUser));
         Alert.alert('Éxito', 'Foto de perfil actualizada');
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+      } finally {
+        setIsUploading(false);
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
-    } finally {
-      setIsUploading(false);
     }
+  };
+
+  const pickImage = () => {
+    Alert.alert('Cambiar foto', '¿De dónde quieres obtener la imagen?', [
+      { 
+        text: 'Tomar foto', 
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso denegado', 'Se requiere acceso a la cámara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          handleImageResult(result);
+        }
+      },
+      { 
+        text: 'Elegir de galería', 
+        onPress: async () => {
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          handleImageResult(result);
+        }
+      },
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
   };
 
   const getProfileImageUrl = (pic?: string | null) => {
     if (!pic) return null;
-    const baseUrl = 'http://172.20.10.5:5000';
+    const baseUrl = API_BASE_URL.replace('/api', '');
     return pic.startsWith('http') ? pic : `${baseUrl}${pic}`;
   };
 
@@ -128,7 +149,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
           
-          {/* Avatar Editor */}
+          {}
           <View style={styles.avatarSection}>
             <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage} disabled={isUploading}>
               <View style={[styles.avatar, { overflow: 'hidden' }]}>
@@ -146,7 +167,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-          {/* Form */}
+          {}
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nombre completo</Text>
@@ -178,33 +199,24 @@ export const EditProfileScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Facultad</Text>
-              <View style={styles.inputWrapper}>
-                <Book size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                <TextInput 
-                  style={styles.input}
-                  value={faculty}
-                  onChangeText={setFaculty}
-                  placeholder="Ej: Ciencias e Ingeniería"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-            </View>
+            <SelectInput
+              label="Departamento"
+              placeholder="Ej: Ciencias Económicas y Administrativas"
+              options={Object.keys(DEPARTMENTS)}
+              value={faculty}
+              onSelect={(val) => {
+                setFaculty(val);
+                setCareer(''); // reset career when faculty changes
+              }}
+            />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Carrera</Text>
-              <View style={styles.inputWrapper}>
-                <Briefcase size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                <TextInput 
-                  style={styles.input}
-                  value={career}
-                  onChangeText={setCareer}
-                  placeholder="Ej: Ingeniería en Sistemas"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-            </View>
+            <SelectInput
+              label="Carrera"
+              placeholder={faculty ? "Selecciona tu carrera" : "Selecciona un departamento primero"}
+              options={faculty ? DEPARTMENTS[faculty as keyof typeof DEPARTMENTS] : []}
+              value={career}
+              onSelect={setCareer}
+            />
             
             {studentId ? (
               <View style={styles.inputGroup}>
