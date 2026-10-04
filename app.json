@@ -28,6 +28,10 @@
       "googleWebClientId": "",
       "googleIosClientId": "",
       "googleAndroidClientId": ""
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar"
+    ]
   }
 }

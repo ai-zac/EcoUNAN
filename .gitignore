@@ -43,3 +43,5 @@ backend/uploads/
 # generated native folders
 /ios
 /android
+
+graphify-out/
