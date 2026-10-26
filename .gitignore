@@ -7,8 +7,11 @@ AGENTS.md
 CLAUDE.md
 graphify-out
 
+backend/uploads/
+
 # dependencies
 */node_modules/
+node_modules/
 
 # Expo
 .expo/
