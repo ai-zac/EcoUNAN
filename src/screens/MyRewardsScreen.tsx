@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Gift, Award, Trophy, QrCode, X } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -16,17 +17,52 @@ export const MyRewardsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRedemptions();
-  }, []);
+    loadRedemptions(false);
 
-  const loadRedemptions = async () => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        loadRedemptions(true);
+      }, 3000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      loadRedemptions(true);
+      startPolling();
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', stopPolling);
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
+
+  const loadRedemptions = async (silent: boolean = false) => {
     try {
       const data = await rewardService.getMyRewards();
       setRedemptions(data);
+      setSelectedReward((prev) => {
+        if (!prev) return null;
+        const updated = data.find((r) => r._id === prev._id);
+        return updated && updated.status !== 'completed' ? updated : null;
+      });
     } catch (error) {
-      console.error(error);
+      if (!silent) console.error(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

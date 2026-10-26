@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Animated, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Animated, ActivityIndicator, Alert, Image } from 'react-native';
 import { ArrowLeft, User, Mail, Camera, Book, Briefcase } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../theme/theme';

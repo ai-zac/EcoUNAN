@@ -1,8 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  FlatList, ActivityIndicator, Alert, TextInput, RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, TextInput, RefreshControl } from 'react-native';
 import {
   ArrowLeft, User, Shield, ShieldCheck, HardHat, Search,
   Power, UserCog, UserPlus, X,
@@ -40,25 +38,61 @@ export const AdminUsersScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     AsyncStorage.getItem('@user_data').then(d => d && setMe(JSON.parse(d)));
-    fetchUsers();
-  }, []);
+    fetchUsers(search, statusFilter, false);
+
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        if (!search.trim()) {
+          fetchUsers(search, statusFilter, true);
+        }
+      }, 4000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation?.addListener ? navigation.addListener('focus', () => {
+      fetchUsers(search, statusFilter, true);
+      startPolling();
+    }) : null;
+
+    const unsubscribeBlur = navigation?.addListener ? navigation.addListener('blur', stopPolling) : null;
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      if (unsubscribeFocus) unsubscribeFocus();
+      if (unsubscribeBlur) unsubscribeBlur();
+    };
+  }, [navigation, statusFilter]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchUsers(search, statusFilter), 400);
+    debounceRef.current = setTimeout(() => fetchUsers(search, statusFilter, false), 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search]);
 
-  const fetchUsers = async (q: string = search, st: '' | 'active' | 'inactive' = statusFilter) => {
+  const fetchUsers = async (q: string = search, st: '' | 'active' | 'inactive' = statusFilter, silent: boolean = false) => {
     try {
       const data = await AdminService.searchUsers(q, st);
       setUsers(data);
     } catch (error: any) {
-      const msg = error?.response?.data?.error || 'No se pudieron cargar los usuarios';
-      Alert.alert('Error', msg);
+      if (!silent) {
+        const msg = error?.response?.data?.error || 'No se pudieron cargar los usuarios';
+        Alert.alert('Error', msg);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 

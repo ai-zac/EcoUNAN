@@ -1,33 +1,170 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Animated, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { useScrollToTop } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStorage } from '../utils/tokenStorage';
 import { ClipboardCheck, Gift, Trash2, FileText, GlassWater, Medal, Users, Target, ShoppingBag, LogOut, User as UserIcon, Settings, HelpCircle, X, Package, Recycle } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { AdminService, DashboardData } from '../api/services/admin.service';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
+// Caché en memoria para carga instantánea al abrir el panel principal
+let cachedDashboardData: DashboardData | null = null;
+
 export const AdminDashboardScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
+  const scrollRef = useRef<any>(null);
+  useScrollToTop(scrollRef);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const statsScale = useRef(new Animated.Value(0.8)).current;
+  // Animaciones sutiles tipo RecycleScreen con física spring y micro-pop
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(14)).current;
+  const badgeScale = useRef(new Animated.Value(0.7)).current;
 
-  const [loading, setLoading] = useState(true);
+  const statsFade = useRef(new Animated.Value(0)).current;
+  const statsSlide = useRef(new Animated.Value(18)).current;
+  const statsScale = useRef(new Animated.Value(0.96)).current;
+
+  const activitySectionFade = useRef(new Animated.Value(0)).current;
+  const activitySectionSlide = useRef(new Animated.Value(18)).current;
+
+  const activityFades = useRef<Animated.Value[]>([]).current;
+  const activitySlides = useRef<Animated.Value[]>([]).current;
+  const activityCardScales = useRef<Animated.Value[]>([]).current;
+  const activityIconScales = useRef<Animated.Value[]>([]).current;
+
+  const navSectionFade = useRef(new Animated.Value(0)).current;
+  const navSectionSlide = useRef(new Animated.Value(18)).current;
+  const navSectionScale = useRef(new Animated.Value(0.96)).current;
+
+  const accountSectionFade = useRef(new Animated.Value(0)).current;
+  const accountSectionSlide = useRef(new Animated.Value(18)).current;
+  const accountSectionScale = useRef(new Animated.Value(0.96)).current;
+
+  const [loading, setLoading] = useState(!cachedDashboardData);
   const [refreshing, setRefreshing] = useState(false);
   const [token, setToken] = useState<string | undefined>();
   const [myRole, setMyRole] = useState<string>('admin');
 
   usePushNotifications(token);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(cachedDashboardData);
 
   
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const modalScale = useRef(new Animated.Value(0.8)).current;
   const modalOpacity = useRef(new Animated.Value(0)).current;
+
+  const ensureActivityCapacity = (count: number) => {
+    while (activityFades.length < count) {
+      activityFades.push(new Animated.Value(1));
+      activitySlides.push(new Animated.Value(0));
+      activityCardScales.push(new Animated.Value(1));
+      activityIconScales.push(new Animated.Value(1));
+    }
+  };
+
+  const playEntranceAnimation = (activityCount?: number) => {
+    headerFade.setValue(0);
+    headerSlide.setValue(14);
+    badgeScale.setValue(0.7);
+
+    statsFade.setValue(0);
+    statsSlide.setValue(18);
+    statsScale.setValue(0.96);
+
+    activitySectionFade.setValue(0);
+    activitySectionSlide.setValue(18);
+
+    navSectionFade.setValue(0);
+    navSectionSlide.setValue(18);
+    navSectionScale.setValue(0.96);
+
+    accountSectionFade.setValue(0);
+    accountSectionSlide.setValue(18);
+    accountSectionScale.setValue(0.96);
+
+    const count = typeof activityCount === 'number'
+      ? activityCount
+      : (dashboardData?.recentActivity?.length || cachedDashboardData?.recentActivity?.length || 0);
+
+    ensureActivityCapacity(count);
+    for (let i = 0; i < count; i++) {
+      activityFades[i].setValue(0);
+      activitySlides[i].setValue(18);
+      activityCardScales[i].setValue(0.96);
+      activityIconScales[i].setValue(0.3);
+    }
+
+    const steps: Animated.CompositeAnimation[] = [
+      // 1. Cabecera y badge con micro-pop
+      Animated.parallel([
+        Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+        Animated.spring(badgeScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
+      ]),
+
+      // 2. Grilla de estadísticas (slide y scale spring)
+      Animated.parallel([
+        Animated.timing(statsFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(statsSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+        Animated.spring(statsScale, { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+      ]),
+
+      // 3. Cabecera de Actividad reciente
+      Animated.parallel([
+        Animated.timing(activitySectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(activitySectionSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+      ]),
+    ];
+
+    // 4. Cascada de ítems de actividad reciente con micro-pop de ícono
+    if (count > 0) {
+      for (let i = 0; i < count; i++) {
+        steps.push(
+          Animated.parallel([
+            Animated.timing(activityFades[i], { toValue: 1, duration: 280, useNativeDriver: true }),
+            Animated.spring(activitySlides[i], { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+            Animated.spring(activityCardScales[i], { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+            Animated.sequence([
+              Animated.delay(40),
+              Animated.spring(activityIconScales[i], { toValue: 1, tension: 100, friction: 6, useNativeDriver: true }),
+            ]),
+          ])
+        );
+      }
+    }
+
+    // 5. Bloque de botones de Navegación
+    steps.push(
+      Animated.parallel([
+        Animated.timing(navSectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(navSectionSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+        Animated.spring(navSectionScale, { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+      ])
+    );
+
+    // 6. Bloque de Personalización y Cuenta
+    steps.push(
+      Animated.parallel([
+        Animated.timing(accountSectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(accountSectionSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+        Animated.spring(accountSectionScale, { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+      ])
+    );
+
+    Animated.stagger(65, steps).start();
+  };
+
+  const resetScrollToTop = (animated: boolean = false) => {
+    scrollRef.current?.scrollTo({ y: 0, animated });
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
 
   const handleActivityPress = (item: any) => {
     setSelectedActivity(item);
@@ -48,10 +185,19 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
     });
   };
 
-  const fetchData = async () => {
+  const hasAnimatedOnEntry = useRef(false);
+
+  const fetchData = async (silent: boolean = false) => {
+    if (!silent && !cachedDashboardData) {
+      setLoading(true);
+    }
     try {
       const data = await AdminService.getDashboardData();
+      cachedDashboardData = data;
       setDashboardData(data);
+      if (!silent) {
+        playEntranceAnimation(data?.recentActivity?.length || 0);
+      }
     } catch (error) {
       console.error('Failed to load dashboard', error);
     } finally {
@@ -61,29 +207,61 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('@auth_token');
+    await tokenStorage.removeToken();
     await AsyncStorage.removeItem('@user_data');
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData();
+    fetchData(false);
   };
 
   useEffect(() => {
-    AsyncStorage.getItem('@auth_token').then(t => setToken(t || undefined));
+    tokenStorage.getToken().then(t => setToken(t || undefined));
     AsyncStorage.getItem('@user_data')
       .then(d => { if (d) setMyRole(JSON.parse(d).role || 'admin'); });
-
-    fetchData();
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 40, friction: 8, useNativeDriver: true }),
-      Animated.spring(statsScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
-    ]).start();
   }, []);
+
+  useEffect(() => {
+    // Solo se anima al entrar a la app (primer montaje del panel)
+    if (!hasAnimatedOnEntry.current) {
+      hasAnimatedOnEntry.current = true;
+      playEntranceAnimation();
+    }
+    fetchData(true);
+
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        fetchData(true);
+      }, 3000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      // Al volver de una sub-ventana, NO se anima. Solo refresca datos en silencio
+      fetchData(true);
+      startPolling();
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', stopPolling);
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
 
   const getIconForType = (type: string) => {
     switch(type) {
@@ -99,20 +277,21 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.container}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22C55E" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent || '#22C55E'} />
         }
       >
         
         {}
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View style={{ opacity: headerFade, transform: [{ translateY: headerSlide }] }}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>Panel Principal</Text>
-              <View style={[styles.adminBadge, myRole === 'superadmin' && { backgroundColor: '#7C3AED' }]}>
+              <Animated.View style={[styles.adminBadge, myRole === 'superadmin' && { backgroundColor: '#7C3AED' }, { transform: [{ scale: badgeScale }] }]}>
                 <Text style={styles.adminBadgeText}>{myRole === 'superadmin' ? 'SUPERADMIN' : myRole === 'admin' ? 'ADMIN' : 'BRIGADISTA'}</Text>
-              </View>
+              </Animated.View>
             </View>
             <Text style={styles.subtitle}>Resumen de la plataforma EcoUNAN</Text>
           </View>
@@ -123,7 +302,15 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         ) : (
           <>
             {}
-            <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: statsScale }] }}>
+            <Animated.View 
+              style={{ 
+                opacity: statsFade, 
+                transform: [
+                  { translateY: statsSlide },
+                  { scale: statsScale }
+                ] 
+              }}
+            >
               <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
                   <Text style={styles.statValue}>{dashboardData?.stats?.totalUsers || 0}</Text>
@@ -145,7 +332,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
             </Animated.View>
 
             {}
-            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <Animated.View style={{ opacity: activitySectionFade, transform: [{ translateY: activitySectionSlide }] }}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Actividad reciente</Text>
                 {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 && (
@@ -155,19 +342,33 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                 )}
               </View>
               {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
-                dashboardData.recentActivity.map((item) => (
-                  <TouchableOpacity key={item.id} activeOpacity={0.7} style={styles.activityCard} onPress={() => handleActivityPress(item)}>
-                    <View style={[styles.activityIndicator, { backgroundColor: item.color }]} />
-                    <View style={styles.activityIconBg}>
-                      {getIconForType(item.type)}
-                    </View>
-                    <View style={styles.activityInfo}>
-                      <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: colors.textSecondary}}>por {item.user}</Text></Text>
-                      <Text style={styles.activityTime}>{new Date(item.time).toLocaleString()}</Text>
-                    </View>
-                    <Text style={styles.activityPoints}>{item.points}</Text>
-                  </TouchableOpacity>
-                ))
+                dashboardData.recentActivity.map((item, index) => {
+                  ensureActivityCapacity(index + 1);
+                  return (
+                    <Animated.View
+                      key={item.id}
+                      style={{
+                        opacity: activityFades[index],
+                        transform: [
+                          { translateY: activitySlides[index] },
+                          { scale: activityCardScales[index] }
+                        ]
+                      }}
+                    >
+                      <TouchableOpacity activeOpacity={0.7} style={styles.activityCard} onPress={() => handleActivityPress(item)}>
+                        <View style={[styles.activityIndicator, { backgroundColor: item.color }]} />
+                        <Animated.View style={[styles.activityIconBg, { transform: [{ scale: activityIconScales[index] }] }]}>
+                          {getIconForType(item.type)}
+                        </Animated.View>
+                        <View style={styles.activityInfo}>
+                          <Text style={styles.activityAction}>{item.action} <Text style={{fontSize: 12, fontWeight: 'normal', color: colors.textSecondary}}>por {item.user}</Text></Text>
+                          <Text style={styles.activityTime}>{new Date(item.time).toLocaleString()}</Text>
+                        </View>
+                        <Text style={styles.activityPoints}>{item.points}</Text>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })
               ) : (
                 <View style={{ alignItems: 'center', paddingVertical: 24 }}>
                   <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Aún no hay actividad reciente.</Text>
@@ -178,49 +379,70 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         )}
 
         {}
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View 
+          style={{ 
+            opacity: navSectionFade, 
+            transform: [
+              { translateY: navSectionSlide },
+              { scale: navSectionScale }
+            ] 
+          }}
+        >
           <Text style={styles.sectionTitle}>Navegación</Text>
           
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRecycles')}>
-            <ClipboardCheck size={20} color="#0F172A" />
+            <ClipboardCheck size={20} color={colors.text} />
             <Text style={styles.navButtonText}>Validar reciclaje</Text>
           </TouchableOpacity>
           
           {(myRole === 'admin' || myRole === 'superadmin') && (
             <>
+              <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminReports')}>
+                <FileText size={20} color="#15803D" />
+                <Text style={styles.navButtonText}>Reportes</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRewards')}>
-                <Gift size={20} color="#0F172A" />
+                <Gift size={20} color={colors.text} />
                 <Text style={styles.navButtonText}>Gestionar recompensas</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminGoals')}>
-                <Target size={20} color="#0F172A" />
+                <Target size={20} color={colors.text} />
                 <Text style={styles.navButtonText}>Gestionar metas</Text>
               </TouchableOpacity>
             </>
           )}
 
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRedemptions')}>
-            <ShoppingBag size={20} color="#0F172A" />
+            <ShoppingBag size={20} color={colors.text} />
             <Text style={styles.navButtonText}>Canjes realizados</Text>
           </TouchableOpacity>
           
 
           {myRole === 'superadmin' && (
             <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminUsers')}>
-              <Users size={20} color="#0F172A" />
+              <Users size={20} color={colors.text} />
               <Text style={styles.navButtonText}>Gestión de Usuarios</Text>
             </TouchableOpacity>
           )}
           
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Ranking')}>
-            <Medal size={20} color="#0F172A" />
+            <Medal size={20} color={colors.text} />
             <Text style={styles.navButtonText}>Ver Ranking Global</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {}
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View 
+          style={{ 
+            opacity: accountSectionFade, 
+            transform: [
+              { translateY: accountSectionSlide },
+              { scale: accountSectionScale }
+            ] 
+          }}
+        >
           <Text style={styles.sectionTitle}>Personalización y Cuenta</Text>
 
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('EditProfile')}>
@@ -286,7 +508,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                     <>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Material:</Text>
-                        <Text style={styles.detailValue} style={{textTransform: 'capitalize', fontWeight: 'bold'}}>{selectedActivity.details?.material}</Text>
+                        <Text style={[styles.detailValue, { textTransform: 'capitalize', fontWeight: 'bold' }]}>{selectedActivity.details?.material}</Text>
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>

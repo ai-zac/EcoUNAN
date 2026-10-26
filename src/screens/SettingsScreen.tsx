@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Switch, Alert } from 'react-native';
 import { ArrowLeft, Moon, Globe, Lock, ShieldCheck } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors, useThemeMode } from '../context/ThemeContext';
@@ -43,7 +44,7 @@ export const SettingsScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Configuración</Text>
         <View style={{ width: 40 }} />

@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -83,7 +84,14 @@ export const RegisterScreen = ({ navigation }: any) => {
       await AuthService.register(name, email, password, faculty, career, studentId);
       navigation.replace('MainTabs');
     } catch (error: any) {
-      Alert.alert('Error al registrarse', error.response?.data?.error || 'Verifica tus datos o intenta más tarde');
+      const rawError = error?.response?.data?.error || error?.message || '';
+      let errorMessage = 'Verifica tus datos o intenta más tarde';
+      if (/user.*already.*exists/i.test(rawError) || /ya.*está.*registrado/i.test(rawError)) {
+        errorMessage = 'Este correo electrónico ya está registrado. Intenta iniciar sesión.';
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      Alert.alert('Error al registrarse', errorMessage);
     } finally {
       setLoading(false);
     }

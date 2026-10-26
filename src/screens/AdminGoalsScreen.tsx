@@ -1,8 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { ArrowLeft, Edit, EyeOff, Power, Trash2, Target } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -31,18 +29,52 @@ export const AdminGoalsScreen = ({ navigation }: any) => {
   const [form, setForm] = useState<GoalForm>(EMPTY_FORM);
 
   useEffect(() => {
-    fetchGoals();
-  }, []);
+    fetchGoals(false);
 
-  const fetchGoals = async () => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        if (!modalVisible) {
+          fetchGoals(true);
+        }
+      }, 4000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation?.addListener ? navigation.addListener('focus', () => {
+      fetchGoals(true);
+      startPolling();
+    }) : null;
+
+    const unsubscribeBlur = navigation?.addListener ? navigation.addListener('blur', stopPolling) : null;
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      if (unsubscribeFocus) unsubscribeFocus();
+      if (unsubscribeBlur) unsubscribeBlur();
+    };
+  }, [navigation, modalVisible]);
+
+  const fetchGoals = async (silent: boolean = false) => {
     try {
       const data = await AdminService.getGoalsAdmin();
       setGoals(data);
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar las metas');
+      if (!silent) {
+        console.error(error);
+        Alert.alert('Error', 'No se pudieron cargar las metas');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

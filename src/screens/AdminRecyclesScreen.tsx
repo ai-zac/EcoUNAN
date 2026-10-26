@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Image, Modal, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Modal, RefreshControl, Animated } from 'react-native';
+import { useScrollToTop } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { ArrowLeft, GlassWater, FileText, CheckCircle, Package, Droplet, Coffee, QrCode, ImageOff, User } from 'lucide-react-native';
 import { theme } from '../theme/theme';
@@ -10,12 +12,17 @@ import { API_BASE_URL, assetUrl } from '../api/apiClient';
 import { showToast } from '../components/Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Caché en memoria para animación instantánea al entrar
+let cachedPendingRecycles: any[] | null = null;
+
 export const AdminRecyclesScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
+  const scrollRef = useRef<any>(null);
+  useScrollToTop(scrollRef);
 
-  const [validations, setValidations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [validations, setValidations] = useState<any[]>(cachedPendingRecycles || []);
+  const [loading, setLoading] = useState(!cachedPendingRecycles);
   const [refreshing, setRefreshing] = useState(false);
 
   
@@ -30,11 +37,112 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
   const [approvalQrData, setApprovalQrData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
 
+  // Animaciones idénticas a RecycleScreen (física spring y micro-pop activas en pull-to-refresh)
+  const headerFade = useRef(new Animated.Value(1)).current;
+  const headerSlide = useRef(new Animated.Value(0)).current;
+  const backButtonScale = useRef(new Animated.Value(1)).current;
+
+  // Pools dinámicos de Animated.Value para las tarjetas de validación
+  const fadeAnims = useRef<Animated.Value[]>([]).current;
+  const slideAnims = useRef<Animated.Value[]>([]).current;
+  const cardScales = useRef<Animated.Value[]>([]).current;
+  const iconScales = useRef<Animated.Value[]>([]).current;
+
+  const emptyFade = useRef(new Animated.Value(1)).current;
+  const emptySlide = useRef(new Animated.Value(0)).current;
+
+  const ensureAnimCapacity = (count: number) => {
+    while (fadeAnims.length < count) {
+      fadeAnims.push(new Animated.Value(1));
+      slideAnims.push(new Animated.Value(0));
+      cardScales.push(new Animated.Value(1));
+      iconScales.push(new Animated.Value(1));
+    }
+  };
+
+
+
+  const playCardsAnimation = (count: number) => {
+    ensureAnimCapacity(count);
+    for (let i = 0; i < count; i++) {
+      fadeAnims[i].setValue(0);
+      slideAnims[i].setValue(18);
+      cardScales[i].setValue(0.96);
+      iconScales[i].setValue(0.3);
+    }
+
+    if (count === 0) {
+      emptyFade.setValue(0);
+      emptySlide.setValue(18);
+      Animated.parallel([
+        Animated.timing(emptyFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(emptySlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
+
+    Animated.stagger(
+      65,
+      Array.from({ length: count }, (_, i) =>
+        Animated.parallel([
+          Animated.timing(fadeAnims[i], { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.spring(slideAnims[i], { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+          Animated.spring(cardScales[i], { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.delay(40),
+            Animated.spring(iconScales[i], { toValue: 1, tension: 100, friction: 6, useNativeDriver: true }),
+          ]),
+        ])
+      )
+    ).start();
+  };
+
+  const resetScrollToTop = (animated: boolean = false) => {
+    scrollRef.current?.scrollTo({ y: 0, animated });
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
+
   useEffect(() => {
     AsyncStorage.getItem('@user_data')
       .then(d => { if (d) setMyRole(JSON.parse(d).role || 'admin'); });
-    fetchPending();
   }, []);
+
+  useEffect(() => {
+    // Al entrar a la sub-ventana no se anima, carga los datos directamente
+    fetchPending(true);
+
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        fetchPending(true);
+      }, 3000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      fetchPending(true);
+      startPolling();
+    });
+
+    const unsubscribeBlur = navigation.addListener('blur', stopPolling);
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
 
   
   useEffect(() => {
@@ -46,6 +154,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
           const stillPending = data.find((item: any) => item._id === selectedItem._id);
           if (!stillPending) {
             setQrModalVisible(false);
+            cachedPendingRecycles = data;
             setValidations(data);
             showToast('¡Validado correctamente!', 'success');
           }
@@ -57,10 +166,17 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
     return () => clearInterval(interval);
   }, [qrModalVisible, selectedItem]);
 
-  const fetchPending = async () => {
+  const fetchPending = async (silent: boolean = false) => {
+    if (!silent && !cachedPendingRecycles) {
+      setLoading(true);
+    }
     try {
       const data = await AdminService.getPendingRecycles();
+      cachedPendingRecycles = data;
       setValidations(data);
+      if (!silent) {
+        playCardsAnimation(data.length);
+      }
     } catch (error) {
       console.error(error);
       showToast('No se pudieron cargar las validaciones', 'error');
@@ -72,7 +188,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchPending();
+    fetchPending(false);
   };
 
   const handleAction = async (action: 'approve' | 'reject') => {
@@ -87,7 +203,11 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
         await AdminService.rejectRecycle(id);
         showToast('Solicitud rechazada', 'info');
       }
-      setValidations(prev => prev.filter(item => item._id !== id));
+      setValidations(prev => {
+        const next = prev.filter(item => item._id !== id);
+        cachedPendingRecycles = next;
+        return next;
+      });
       setDetailsModalVisible(false);
     } catch (error) {
       showToast(`No se pudo ${action === 'approve' ? 'aprobar' : 'rechazar'}`, 'error');
@@ -123,17 +243,31 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color={colors.text} />
-        </TouchableOpacity>
+      <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
+        <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('AdminPanel');
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Volver atrás"
+          >
+            <ArrowLeft size={20} color={colors.text} />
+          </TouchableOpacity>
+        </Animated.View>
         <Text style={styles.title}>Validar reciclaje</Text>
         <View style={[styles.adminBadge, myRole === 'superadmin' ? { backgroundColor: '#7C3AED' } : { backgroundColor: colors.primary }]}>
           <Text style={[styles.adminBadgeText, { color: '#FFFFFF' }]}>{myRole === 'superadmin' ? 'SUPERADMIN' : myRole === 'admin' ? 'ADMIN' : 'BRIGADISTA'}</Text>
         </View>
-      </View>
+      </Animated.View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
@@ -144,12 +278,12 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : validations.length === 0 ? (
-          <View style={styles.emptyState}>
+          <Animated.View style={[styles.emptyState, { opacity: emptyFade, transform: [{ translateY: emptySlide }] }]}>
             <CheckCircle size={48} color={colors.accent} />
             <Text style={styles.emptyStateText}>No hay validaciones pendientes</Text>
-          </View>
+          </Animated.View>
         ) : (
-          validations.map((item) => {
+          validations.map((item, index) => {
             const itemsToRender = item.items && item.items.length > 0
               ? item.items
               : [{ materialType: item.materialType || 'pet', weight: item.weight || 0 }];
@@ -157,34 +291,47 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
             const displayTotalWeight = item.totalWeight || 0;
             const isInperson = item.validationMode === 'inperson';
 
+            ensureAnimCapacity(index + 1);
+
             return (
-              <TouchableOpacity
+              <Animated.View
                 key={item._id}
-                style={styles.validationCard}
-                onPress={() => {
-                  setSelectedItem(item);
-                  setImageError(false);
-                  setDetailsModalVisible(true);
+                style={{
+                  opacity: fadeAnims[index],
+                  transform: [
+                    { translateY: slideAnims[index] },
+                    { scale: cardScales[index] }
+                  ]
                 }}
               >
-                <View style={styles.cardHeader}>
-                  <View style={styles.iconBg}>
-                    {getIconForType(itemsToRender[0]?.materialType)}
+                <TouchableOpacity
+                  style={styles.validationCard}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setSelectedItem(item);
+                    setImageError(false);
+                    setDetailsModalVisible(true);
+                  }}
+                >
+                  <View style={styles.cardHeader}>
+                    <Animated.View style={[styles.iconBg, { transform: [{ scale: iconScales[index] }] }]}>
+                      {getIconForType(itemsToRender[0]?.materialType)}
+                    </Animated.View>
+                    <View style={styles.infoContainer}>
+                      <Text style={styles.itemName}>{item.user?.name || 'Usuario'}</Text>
+                      <Text style={styles.itemDetails}>{displayTotalWeight} kg • {new Date(item.createdAt).toLocaleDateString()}</Text>
+                      <Text style={[styles.modeTag, isInperson ? styles.modeInperson : styles.modePhoto]}>
+                        {isInperson ? 'Entrega presencial (QR)' : 'Evidencia por foto'}
+                      </Text>
+                    </View>
+                    <View style={styles.pointsBadge}>
+                      <Text style={styles.pointsText}>+{displayTotalPoints} pts</Text>
+                    </View>
                   </View>
-                  <View style={styles.infoContainer}>
-                    <Text style={styles.itemName}>{item.user?.name || 'Usuario'}</Text>
-                    <Text style={styles.itemDetails}>{displayTotalWeight} kg • {new Date(item.createdAt).toLocaleDateString()}</Text>
-                    <Text style={[styles.modeTag, isInperson ? styles.modeInperson : styles.modePhoto]}>
-                      {isInperson ? 'Entrega presencial (QR)' : 'Evidencia por foto'}
-                    </Text>
-                  </View>
-                  <View style={styles.pointsBadge}>
-                    <Text style={styles.pointsText}>+{displayTotalPoints} pts</Text>
-                  </View>
-                </View>
-                <View style={styles.divider} />
-                <Text style={styles.viewDetailsText}>Toca para revisar y gestionar</Text>
-              </TouchableOpacity>
+                  <View style={styles.divider} />
+                  <Text style={styles.viewDetailsText}>Toca para revisar y gestionar</Text>
+                </TouchableOpacity>
+              </Animated.View>
             );
           })
         )}

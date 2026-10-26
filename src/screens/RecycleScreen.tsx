@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Animated, Alert, TextInput, Modal, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Alert, TextInput, Modal, ActivityIndicator, Platform, Easing } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useScrollToTop } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { GlassWater, Coffee, FileText, Package, Droplet, Plus, Minus, Camera, QrCode, X } from 'lucide-react-native';
+import { ArrowLeft, GlassWater, Coffee, FileText, Package, Droplet, Plus, Minus, Camera, QrCode, X } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { Button } from '../components/Button';
@@ -27,30 +29,124 @@ const MATERIALS: Material[] = [
 export const RecycleScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
+  const scrollRef = useRef<any>(null);
+  useScrollToTop(scrollRef);
 
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [description, setDescription] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Animaciones de entrada sutil
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(14)).current;
+  const backButtonScale = useRef(new Animated.Value(0.7)).current;
+
   const fadeAnims = useRef(MATERIALS.map(() => new Animated.Value(0))).current;
-  const slideAnims = useRef(MATERIALS.map(() => new Animated.Value(30))).current;
+  const slideAnims = useRef(MATERIALS.map(() => new Animated.Value(18))).current;
+  const cardScales = useRef(MATERIALS.map(() => new Animated.Value(0.96))).current;
+  const iconScales = useRef(MATERIALS.map(() => new Animated.Value(0.3))).current;
+
+  const bottomFade = useRef(new Animated.Value(0)).current;
+  const bottomSlide = useRef(new Animated.Value(18)).current;
+
+  const playEntranceAnimation = () => {
+    headerFade.setValue(0);
+    headerSlide.setValue(14);
+    backButtonScale.setValue(0.7);
+
+    bottomFade.setValue(0);
+    bottomSlide.setValue(18);
+
+    MATERIALS.forEach((_, i) => {
+      fadeAnims[i].setValue(0);
+      slideAnims[i].setValue(18);
+      cardScales[i].setValue(0.96);
+      iconScales[i].setValue(0.3);
+    });
+
+    Animated.stagger(65, [
+      // Cabecera y botón de retroceso
+      Animated.parallel([
+        Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+        Animated.spring(backButtonScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
+      ]),
+
+      // Cascada de las 5 tarjetas de materiales e íconos con micro-pop
+      ...MATERIALS.map((_, i) =>
+        Animated.parallel([
+          Animated.timing(fadeAnims[i], { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.spring(slideAnims[i], { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+          Animated.spring(cardScales[i], { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.delay(40),
+            Animated.spring(iconScales[i], { toValue: 1, tension: 100, friction: 6, useNativeDriver: true }),
+          ]),
+        ])
+      ),
+
+      // Barra inferior con botón Continuar
+      Animated.parallel([
+        Animated.timing(bottomFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.spring(bottomSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
+      ]),
+    ]).start();
+  };
+
+  const resetScrollToTop = (animated: boolean = false) => {
+    scrollRef.current?.scrollTo({ y: 0, animated });
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
 
   useEffect(() => {
-    const animations = MATERIALS.map((_, i) => {
-      return Animated.parallel([
-        Animated.timing(fadeAnims[i], { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(slideAnims[i], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
-      ]);
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      resetScrollToTop(false);
+      playEntranceAnimation();
     });
-    Animated.stagger(100, animations).start();
-  }, []);
+
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      resetScrollToTop(false);
+    });
+
+    playEntranceAnimation();
+
+    return () => {
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
 
   const handleIncrement = (id: string) => {
     setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   };
 
   const handleDecrement = (id: string) => {
-    setQuantities(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) - 1) }));
+    setQuantities(prev => {
+      const current = prev[id] || 0;
+      if (current <= 1) {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: current - 1 };
+    });
+  };
+
+  const handleQuantityChange = (id: string, text: string) => {
+    const clean = text.replace(/[^0-9]/g, '');
+    if (!clean || clean === '0') {
+      setQuantities(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    const num = Math.min(9999, parseInt(clean, 10));
+    setQuantities(prev => ({ ...prev, [id]: num }));
   };
 
   const totalPoints = MATERIALS.reduce((sum, item) => sum + (quantities[item.id] || 0) * item.points, 0);
@@ -98,10 +194,12 @@ export const RecycleScreen = ({ navigation }: any) => {
       await RecycleService.registerRecycle(itemsToRegister, photoUri, description);
       
       navigation.navigate('RecyclePending');
-    } catch (error) {
+    } catch (error: any) {
       setModalVisible(false);
-      console.error(error);
-      Alert.alert('Error', 'No se pudo abrir la cámara o registrar el reciclaje.');
+      console.error('[handleValidatePhoto Error]', error);
+      const serverMsg = error?.response?.data?.error;
+      const errorMsg = serverMsg || error?.message || 'No se pudo registrar el reciclaje.';
+      Alert.alert('Error al registrar', errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,12 +232,30 @@ export const RecycleScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Registrar reciclaje</Text>
+      <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
+        <View style={styles.titleRow}>
+          <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('Inicio');
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Volver atrás"
+            >
+              <ArrowLeft size={24} color={colors.text} />
+            </TouchableOpacity>
+          </Animated.View>
+          <Text style={styles.title}>Registrar reciclaje</Text>
+        </View>
         <Text style={styles.subtitle}>Selecciona el material que deseas entregar y confirma la cantidad.</Text>
-      </View>
+      </Animated.View>
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionTitle}>Tipo de material</Text>
         
         {MATERIALS.map((item, index) => {
@@ -153,35 +269,56 @@ export const RecycleScreen = ({ navigation }: any) => {
               style={[
                 styles.materialCard, 
                 isSelected && styles.materialCardSelected,
-                { opacity: fadeAnims[index], transform: [{ translateY: slideAnims[index] }] }
+                { 
+                  opacity: fadeAnims[index], 
+                  transform: [
+                    { translateY: slideAnims[index] },
+                    { scale: cardScales[index] }
+                  ] 
+                }
               ]}
             >
               <View style={styles.materialHeader}>
                 <View style={styles.materialLeft}>
-                  <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                  <Animated.View style={[styles.iconBox, { backgroundColor: item.bg, transform: [{ scale: iconScales[index] }] }]}>
                     <Icon size={20} color={item.color} />
-                  </View>
+                  </Animated.View>
                   <View>
                     <Text style={styles.materialName}>{item.name}</Text>
                     <Text style={styles.materialPoints}>+{item.points} puntos c/u</Text>
                   </View>
                 </View>
 
-                {isSelected ? (
-                  <View style={styles.stepper}>
-                    <TouchableOpacity onPress={() => handleDecrement(item.id)} style={styles.stepperBtn}>
-                      <Minus size={16} color={colors.accent} />
-                    </TouchableOpacity>
-                    <Text style={styles.stepperQty}>{qty}</Text>
-                    <TouchableOpacity onPress={() => handleIncrement(item.id)} style={styles.stepperBtn}>
-                      <Plus size={16} color={colors.accent} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity onPress={() => handleIncrement(item.id)} style={styles.addButton}>
-                    <Plus size={20} color={colors.accent} strokeWidth={3} />
+                <View style={[styles.stepper, isSelected && styles.stepperSelected]}>
+                  <TouchableOpacity 
+                    onPress={() => handleDecrement(item.id)} 
+                    style={[styles.stepperBtn, isSelected && styles.stepperBtnActive]}
+                    disabled={qty <= 0}
+                    activeOpacity={0.7}
+                  >
+                    <Minus size={15} color={isSelected ? colors.accent : '#94A3B8'} strokeWidth={2.5} />
                   </TouchableOpacity>
-                )}
+
+                  <TextInput
+                    style={[styles.stepperInput, isSelected && styles.stepperInputSelected]}
+                    value={qty > 0 ? String(qty) : ''}
+                    placeholder="0"
+                    placeholderTextColor="#94A3B8"
+                    onChangeText={(text) => handleQuantityChange(item.id, text)}
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    selectTextOnFocus
+                    maxLength={4}
+                  />
+
+                  <TouchableOpacity 
+                    onPress={() => handleIncrement(item.id)} 
+                    style={[styles.stepperBtn, styles.stepperBtnActive]}
+                    activeOpacity={0.7}
+                  >
+                    <Plus size={15} color={colors.accent} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {isSelected && (
@@ -210,13 +347,13 @@ export const RecycleScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <Animated.View style={[styles.bottomBar, { opacity: bottomFade, transform: [{ translateY: bottomSlide }] }]}>
         <Button 
           title="Continuar" 
           disabled={totalPoints === 0 || isSubmitting}
           onPress={handleContinue} 
         />
-      </View>
+      </Animated.View>
 
       {}
       <Modal
@@ -272,19 +409,33 @@ export const RecycleScreen = ({ navigation }: any) => {
 
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { padding: theme.spacing.m, paddingTop: theme.spacing.xl },
-  title: { ...theme.typography.h1, marginBottom: theme.spacing.s },
-  subtitle: { ...theme.typography.bodySecondary, lineHeight: 22 },
+  header: { 
+    paddingHorizontal: theme.spacing.m, 
+    paddingTop: 4, 
+    paddingBottom: 8,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 4,
+    marginLeft: -4,
+  },
+  title: { fontSize: 24, fontWeight: '900', color: colors.text },
+  subtitle: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginLeft: 2 },
   
-  container: { padding: theme.spacing.m, paddingBottom: 100 },
-  sectionTitle: { ...theme.typography.body, fontWeight: 'bold', marginBottom: theme.spacing.m },
+  container: { paddingHorizontal: theme.spacing.m, paddingTop: 4, paddingBottom: 100 },
+  sectionTitle: { ...theme.typography.body, fontWeight: 'bold', marginBottom: 10 },
 
   materialCard: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
-    marginBottom: theme.spacing.m,
+    marginBottom: 12,
     backgroundColor: colors.white,
     ...theme.shadows.soft,
   },
@@ -298,11 +449,45 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   materialName: { fontSize: 16, fontWeight: 'bold', color: colors.primary, marginBottom: 2 },
   materialPoints: { fontSize: 14, color: colors.textSecondary },
   
-  addButton: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  
-  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 4, paddingVertical: 2 },
-  stepperBtn: { padding: 4 },
-  stepperQty: { fontSize: 16, fontWeight: 'bold', marginHorizontal: 12, color: colors.primary },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    minWidth: 112,
+    justifyContent: 'space-between',
+  },
+  stepperSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.white,
+  },
+  stepperBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+  },
+  stepperBtnActive: {
+    backgroundColor: '#E7F7ED',
+  },
+  stepperInput: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    minWidth: 40,
+    paddingVertical: Platform.OS === 'ios' ? 4 : 2,
+    paddingHorizontal: 4,
+  },
+  stepperInputSelected: {
+    color: colors.primary,
+  },
 
   materialFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.m, paddingTop: theme.spacing.m, borderTopWidth: 1, borderTopColor: '#BBF7D0' },
   footerText: { color: colors.textSecondary, fontWeight: '500' },
@@ -389,7 +574,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',

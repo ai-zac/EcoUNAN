@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { useThemeMode } from '../context/ThemeContext';
 import { navigationRef } from './navigationRef';
+import { tokenStorage } from '../utils/tokenStorage';
 
 import { theme } from '../theme/theme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -48,6 +49,10 @@ import { AdminCreateStaffScreen } from '../screens/AdminCreateStaffScreen';
 import { AdminGoalsScreen } from '../screens/AdminGoalsScreen';
 import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
 import { AdminActivityLogScreen } from '../screens/AdminActivityLogScreen';
+import { AdminReportsScreen } from '../screens/AdminReportsScreen';
+import { RegisteredRecyclesReportScreen } from '../screens/RegisteredRecyclesReportScreen';
+import { UserSummaryReportScreen } from '../screens/UserSummaryReportScreen';
+import { RewardSystemReportScreen } from '../screens/RewardSystemReportScreen';
 
 
 import { RankingScreen } from '../screens/RankingScreen';
@@ -80,6 +85,10 @@ export type RootStackParamList = {
   AdminGoals: undefined;
   AdminRedemptions: undefined;
   AdminActivityLog: undefined;
+  AdminReports: undefined;
+  RegisteredRecyclesReport: undefined;
+  UserSummaryReport: undefined;
+  RewardSystemReport: undefined;
   RecyclePending: undefined;
   RecycleSuccess: undefined;
   RedemptionSuccess: undefined;
@@ -115,13 +124,16 @@ const MainTabs = () => {
   const unreadCount = useUnreadCount();
 
   React.useEffect(() => {
-    AsyncStorage.getItem('@auth_token').then(t => setToken(t || undefined));
+    tokenStorage.getToken().then(t => setToken(t || undefined));
   }, []);
 
   usePushNotifications(token);
   
   return (
-    <Tab.Navigator id="MainTabs" screenOptions={{
+    <Tab.Navigator 
+      id="MainTabs" 
+      backBehavior="history"
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
@@ -169,6 +181,12 @@ const MainTabs = () => {
         options={{
           tabBarIcon: ({ color, focused }) => <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} />,
           tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#EF4444',
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: 'bold',
+          },
         }}
       />
     </Tab.Navigator>
@@ -219,6 +237,10 @@ export const AppNavigator = () => {
         <Stack.Screen name="AdminGoals" component={AdminGoalsScreen} />
         <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
         <Stack.Screen name="AdminActivityLog" component={AdminActivityLogScreen} />
+        <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
+        <Stack.Screen name="RegisteredRecyclesReport" component={RegisteredRecyclesReportScreen} />
+        <Stack.Screen name="UserSummaryReport" component={UserSummaryReportScreen} />
+        <Stack.Screen name="RewardSystemReport" component={RewardSystemReportScreen} />
         
         {}
         <Stack.Screen name="Ranking" component={RankingScreen} />

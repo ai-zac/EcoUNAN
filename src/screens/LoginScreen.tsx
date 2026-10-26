@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
@@ -51,7 +52,10 @@ export const LoginScreen = ({ navigation }: any) => {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) return;
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Campos requeridos', 'Por favor ingresa tu correo electrónico y contraseña.');
+      return;
+    }
     setLoading(true);
     try {
       const response = await AuthService.login(email, password);
@@ -64,7 +68,19 @@ export const LoginScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error(error);
-      const errorMessage = error?.response?.data?.error || 'No se pudo conectar con el servidor. Verifica tu conexión o intenta más tarde.';
+      const rawError = error?.response?.data?.error || error?.message || '';
+      let errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión o intenta más tarde.';
+      if (rawError) {
+        if (/invalid.*password/i.test(rawError) || /correo.*contraseña/i.test(rawError)) {
+          errorMessage = 'Correo o contraseña incorrectos. Por favor, verifica tus datos.';
+        } else if (/user.*not.*found/i.test(rawError) || /no.*encontrado/i.test(rawError)) {
+          errorMessage = 'No existe una cuenta registrada con este correo.';
+        } else if (/deshabilitada/i.test(rawError)) {
+          errorMessage = 'Esta cuenta se encuentra deshabilitada. Contacta al administrador.';
+        } else if (error?.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        }
+      }
       Alert.alert('Error al iniciar sesión', errorMessage);
     } finally {
       setLoading(false);

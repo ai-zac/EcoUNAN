@@ -1,5 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Modal, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, Animated, ScrollView } from 'react-native';
 import { ArrowLeft, Filter, Trash2, FileText, GlassWater, Recycle, Package, Gift, X, Calendar } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -23,18 +24,50 @@ export const AdminActivityLogScreen = ({ navigation }: any) => {
   const modalOpacity = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    fetchData();
-  }, [type, period]);
+    fetchData(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        if (!modalVisible) {
+          fetchData(true);
+        }
+      }, 4000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation?.addListener ? navigation.addListener('focus', () => {
+      fetchData(true);
+      startPolling();
+    }) : null;
+
+    const unsubscribeBlur = navigation?.addListener ? navigation.addListener('blur', stopPolling) : null;
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      if (unsubscribeFocus) unsubscribeFocus();
+      if (unsubscribeBlur) unsubscribeBlur();
+    };
+  }, [navigation, type, period, modalVisible]);
+
+  const fetchData = async (silent: boolean = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await AdminService.getActivityLog(type, period);
       setActivities(data);
     } catch (error) {
-      console.error(error);
+      if (!silent) console.error(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -189,7 +222,7 @@ export const AdminActivityLogScreen = ({ navigation }: any) => {
                     <>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Material:</Text>
-                        <Text style={styles.detailValue} style={{textTransform: 'capitalize', fontWeight: 'bold'}}>{selectedActivity.details?.material}</Text>
+                        <Text style={[styles.detailValue, { textTransform: 'capitalize', fontWeight: 'bold' }]}>{selectedActivity.details?.material}</Text>
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>

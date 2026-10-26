@@ -1,8 +1,6 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import {
-  View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert, FlatList, RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, RefreshControl } from 'react-native';
 import { ArrowLeft, Gift, ShoppingBag, CheckCircle, XCircle } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -23,22 +21,56 @@ export const AdminRedemptionsScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchRedemptions();
+    fetchRedemptions(false);
+
+    let pollingInterval: NodeJS.Timeout | null = null;
+    const startPolling = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        fetchRedemptions(true);
+      }, 3000);
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      fetchRedemptions(true);
+      startPolling();
     });
-    return unsubscribe;
+
+    const unsubscribeBlur = navigation.addListener('blur', stopPolling);
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
   }, [navigation]);
 
-  const fetchRedemptions = async () => {
+  const fetchRedemptions = async (silent: boolean = false) => {
+    if (!silent && redemptions.length === 0) {
+      setLoading(true);
+    }
     try {
       const data = await AdminService.getAllRedemptions();
       setRedemptions(data);
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los canjes');
+      if (!silent) {
+        console.error(error);
+        Alert.alert('Error', 'No se pudieron cargar los canjes');
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
