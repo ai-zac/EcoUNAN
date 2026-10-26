@@ -8,7 +8,6 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "seed:perf": "tsx src/seedPerformance.ts",
-    "seed:students": "tsx src/seedStudents.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,6 +22,7 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.3.0",
+    "http-proxy-middleware": "^3.0.7",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.3",
     "multer": "^2.2.0",

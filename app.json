@@ -31,7 +31,17 @@
     },
     "plugins": [
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F8F8FB",
+          "image": "./assets/images/ecounan_logo_transparent.png",
+          "imageWidth": 200
+        }
+      ],
+      "expo-sharing"
     ]
   }
 }

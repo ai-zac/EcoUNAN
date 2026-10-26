@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import userRoutes from './routes/user.routes';
@@ -14,10 +14,10 @@ import goalRoutes from './routes/goal.routes';
 import notificationRoutes from './routes/notification.routes';
 import recycleRoutes from './routes/recycle.routes';
 import staffRoutes from './routes/staff.routes';
-import studentRoutes from './routes/student.routes';
 import { errorHandler } from './middlewares/errorHandler';
 
-dotenv.config();
+import { createProxyMiddleware } from 'http-proxy-middleware';
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.error('[SECURITY] JWT_SECRET must be at least 32 characters. Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
@@ -33,7 +33,7 @@ app.use(helmet());
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:8081,http://localhost:19006').split(',');
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-
+    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -48,6 +48,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// Sanitización contra inyección NoSQL compatible con Express 5 (muta in-place sin reasignar getter req.query)
 const sanitizeNoSQL = (obj: any): void => {
   if (!obj || typeof obj !== 'object') return;
   for (const key of Object.keys(obj)) {
@@ -67,6 +68,7 @@ app.use((req, _res, next) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -90,13 +92,14 @@ const resetPasswordLimiter = rateLimit({
 app.use('/api/auth/reset-password', resetPasswordLimiter);
 
 const globalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
+  windowMs: 1 * 60 * 1000, // 1 minute
   max: process.env.NODE_ENV === 'production' ? 150 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Demasiadas solicitudes. Intenta de nuevo en un momento.' },
 });
 app.use('/api/', globalLimiter);
+
 
 const connectDB = async () => {
   try {
@@ -108,7 +111,7 @@ const connectDB = async () => {
       maxIdleTimeMS: 30000,
       serverApi: {
         version: '1',
-        strict: true,
+        strict: false,
         deprecationErrors: true,
       }
     });
@@ -121,6 +124,7 @@ const connectDB = async () => {
 
 connectDB();
 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
@@ -128,12 +132,28 @@ app.use('/api/rewards', rewardRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/recycles', recycleRoutes);
-app.use('/api/staff', staffRoutes);
-app.use('/api/estudiantes', studentRoutes);
+// Proxy inverso hacia el microservicio de reportes (puerto 5001).
+// Express quita el prefijo '/api/reports' de req.url, por eso el target lo incluye.
+// El header Authorization (JWT) se reenvía intacto por defecto.
+app.use('/api/reports', createProxyMiddleware({
+  target: `${process.env.REPORTS_SERVICE_URL || 'http://localhost:5001'}/api/reports`,
+  changeOrigin: true,
+  on: {
+    error: (err, _req, res) => {
+      console.error('[Proxy /api/reports]', err.message);
+      if ('writeHead' in res && !res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Servicio de reportes no disponible' }));
+      }
+    },
+  },
+}));
+
 
 app.get('/', (req, res) => {
   res.send('EcoUnan API is running...');
 });
+
 
 app.use(errorHandler);
 

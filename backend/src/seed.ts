@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import path from 'path';
+import * as path from 'node:path';
 import User from './models/user.model';
 import Reward from './models/reward.model';
 import Recycle from './models/recycle.model';

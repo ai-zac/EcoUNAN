@@ -1,7 +1,8 @@
 import multer from 'multer';
-import path from 'path';
+import * as path from 'node:path';
 import fs from 'fs';
 import crypto from 'crypto';
+
 
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -37,8 +38,8 @@ const fileFilter = (req: any, file: any, cb: any) => {
   }
 };
 
-export const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }
+export const upload = multer({ 
+  storage: storage, 
+  fileFilter: fileFilter, 
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB para fotos de alta resolución de cámara
 });
