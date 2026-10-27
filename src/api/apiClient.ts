@@ -10,7 +10,7 @@ const getBaseUrl = () => {
   
   
   
-  return 'http://10.244.92.156:5000/api';
+  return 'http://192.168.40.62:5000/api';
 };
 
 export const API_BASE_URL = getBaseUrl();
