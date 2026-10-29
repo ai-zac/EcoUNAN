@@ -134,7 +134,7 @@ export const buildRewardExcel = async (params: {
   catHeaderRow.height = 20;
   r++;
 
-  for (const item of catalog) {
+  for (const item of (catalog || [])) {
     const row = ws.getRow(r);
     const vals = [
       item.title,
