@@ -1,6 +1,17 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, RefreshControl } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  ScrollView, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  Alert, 
+  Animated, 
+  Easing, 
+  RefreshControl 
+} from 'react-native';
 import { Leaf, Gift, ArrowLeft, Target } from 'lucide-react-native';
 import { useScrollToTop } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -191,7 +202,7 @@ export const GoalsScreen = ({ navigation }: any) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [claimingId, setClaimingId] = useState<string | null>(null);
 
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
 
   // Animaciones de entrada instantánea
@@ -472,7 +483,7 @@ export const GoalsScreen = ({ navigation }: any) => {
           <Text style={styles.subtitle}>Cada meta te acerca a una universidad más sostenible.</Text>
         </Animated.View>
 
-        {/* Sección de Meta de Canje Fijada */}
+        
         {pinnedReward ? (
           <Animated.View 
             style={[
@@ -489,7 +500,7 @@ export const GoalsScreen = ({ navigation }: any) => {
             <View style={styles.pinnedCard}>
               <View style={styles.pinnedHeader}>
                 <View style={styles.pinnedBadge}>
-                  <Target size={13} color="#16A34A" style={{ marginRight: 4 }} />
+                  <Target size={13} color={colors.accent || '#16A34A'} style={{ marginRight: 4 }} />
                   <Text style={styles.pinnedBadgeText}>Meta de Canje Fijada</Text>
                 </View>
                 <TouchableOpacity 
@@ -502,7 +513,7 @@ export const GoalsScreen = ({ navigation }: any) => {
 
               <View style={styles.pinnedBody}>
                 <View style={styles.pinnedIconBg}>
-                  <Gift size={24} color="#16A34A" />
+                  <Gift size={24} color={colors.accent || '#16A34A'} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pinnedTitle}>{pinnedReward.title}</Text>
@@ -521,7 +532,7 @@ export const GoalsScreen = ({ navigation }: any) => {
                           outputRange: ['0%', '100%'],
                           extrapolate: 'clamp',
                         }), 
-                        backgroundColor: '#16A34A' 
+                        backgroundColor: colors.accent || '#16A34A' 
                       }
                     ]} 
                   />
@@ -602,7 +613,9 @@ export const GoalsScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+const useStyles = (colors: typeof theme.colors) => {
+  const isDark = colors.background === '#0A0F1D';
+  return StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.surface },
   container: { paddingHorizontal: theme.spacing.m, paddingTop: 4, paddingBottom: 100 },
   header: { marginBottom: 14, marginTop: 2 },
@@ -624,9 +637,9 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   pinnedSection: { marginBottom: 16 },
   pinnedCard: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.08)' : '#F0FDF4',
     borderWidth: 1.5,
-    borderColor: '#16A34A',
+    borderColor: isDark ? 'rgba(34, 197, 94, 0.35)' : '#16A34A',
     borderRadius: 16,
     padding: 16,
     ...theme.shadows.soft,
@@ -635,30 +648,30 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
   },
-  pinnedBadgeText: { fontSize: 11, fontWeight: '900', color: '#16A34A' },
-  changeGoalText: { fontSize: 13, fontWeight: '800', color: '#16A34A' },
+  pinnedBadgeText: { fontSize: 11, fontWeight: '900', color: isDark ? '#4ADE80' : '#16A34A' },
+  changeGoalText: { fontSize: 13, fontWeight: '800', color: isDark ? '#4ADE80' : '#16A34A' },
   pinnedBody: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   pinnedIconBg: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   pinnedTitle: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 2 },
-  pinnedPoints: { fontSize: 13, fontWeight: '800', color: '#16A34A' },
+  pinnedPoints: { fontSize: 13, fontWeight: '800', color: isDark ? '#4ADE80' : '#16A34A' },
   redeemGoalBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16A34A',
+    backgroundColor: colors.accent || '#16A34A',
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 10,
@@ -728,4 +741,5 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   claimButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
   claimedNote: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
-});
+  });
+};

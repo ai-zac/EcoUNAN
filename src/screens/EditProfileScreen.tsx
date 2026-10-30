@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Animated, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Animated, ActivityIndicator, Alert, Image } from 'react-native';
 import { ArrowLeft, User, Mail, Camera, Book, Briefcase } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../theme/theme';
@@ -131,7 +130,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+      
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} disabled={saving}>
           <ArrowLeft size={24} color={colors.text} />
@@ -266,7 +265,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   form: { flex: 1 },
   inputGroup: { marginBottom: theme.spacing.l },
   label: { ...theme.typography.body, fontWeight: 'bold', marginBottom: 8 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.m, paddingHorizontal: theme.spacing.m, ...theme.shadows.soft },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.m, paddingHorizontal: theme.spacing.m, ...theme.shadows.soft },
   inputIcon: { marginRight: theme.spacing.s },
   input: { flex: 1, height: 50, fontSize: 16, color: colors.text },
 

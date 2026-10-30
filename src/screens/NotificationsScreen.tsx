@@ -1,6 +1,16 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+} from 'react-native';
 import {
   ArrowLeft,
   Bell,
@@ -17,10 +27,6 @@ import { notificationService } from '../api/services/notification.service';
 import { refreshUnreadCount } from '../hooks/useUnreadCount';
 import { Notification } from '../types';
 
-/**
- * Corrige de forma transparente cualquier texto con codificación corrupta (mojibake)
- * proveniente de registros antiguos en la base de datos.
- */
 const cleanNotificationText = (str?: string): string => {
   if (!str) return '';
   return str
@@ -131,7 +137,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      // Actualización optimista inmediata en la UI
+
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
       );
@@ -148,7 +154,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
     try {
       setMarkingAll(true);
-      // Actualización optimista de todas a leídas
+
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       await notificationService.markAllAsRead();
       refreshUnreadCount();
@@ -192,7 +198,6 @@ export const NotificationsScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notificaciones</Text>
 
-        {/* Botón para marcar todas como leídas */}
         {unreadCount > 0 ? (
           <TouchableOpacity
             style={styles.markAllButton}
@@ -283,7 +288,6 @@ export const NotificationsScreen = ({ navigation }: any) => {
                     </Text>
                   </View>
 
-                  {/* Indicador de no leído */}
                   {isUnread && (
                     <TouchableOpacity
                       style={styles.markReadBtn}
@@ -356,7 +360,7 @@ const useStyles = (colors: typeof theme.colors) =>
       ...theme.shadows.soft,
     },
     unreadCard: {
-      backgroundColor: colors.white,
+      backgroundColor: colors.card,
       borderColor: colors.primary + '55',
       shadowOpacity: 0.12,
     },

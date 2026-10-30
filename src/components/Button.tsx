@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Text, StyleSheet, Animated, Pressable, ViewStyle, TextStyle, PressableProps, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
   title: string;
@@ -24,6 +24,7 @@ export const Button = ({
   ...props
 }: ButtonProps) => {
   const colors = useThemeColors();
+  const { isDark } = useThemeMode();
   const styles = useStyles(colors);
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -48,16 +49,17 @@ export const Button = ({
   };
 
   const getBackgroundColor = () => {
-    if (disabled) return colors.border;
+    if (disabled) return isDark ? '#1E293B' : '#E2E8F0';
     if (variant === 'primary') return colors.primary;
     if (variant === 'secondary') return colors.surface;
     return 'transparent';
   };
 
   const getTextColor = () => {
-    if (disabled) return colors.textSecondary;
+    if (disabled) return isDark ? '#64748B' : '#94A3B8';
     if (variant === 'primary') return '#FFFFFF';
-    return colors.primary;
+    if (variant === 'secondary') return isDark ? '#F8FAFC' : colors.text;
+    return isDark ? '#22C55E' : colors.primary;
   };
 
   return (
@@ -73,8 +75,8 @@ export const Button = ({
           styles.container,
           {
             backgroundColor: getBackgroundColor(),
-            borderWidth: variant === 'outline' ? 1 : 0,
-            borderColor: theme.colors.border,
+            borderWidth: variant === 'outline' || variant === 'secondary' ? 1 : 0,
+            borderColor: colors.border,
             transform: [{ scale }]
           },
           style,

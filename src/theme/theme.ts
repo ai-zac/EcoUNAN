@@ -4,9 +4,10 @@ export type ThemeMode = 'light' | 'dark';
 const lightColors = {
   primary: '#111827',
   primaryLight: '#1F2937',
-  accent: '#22C55E',
+  accent: '#16A34A',
   background: '#FFFFFF',
   surface: '#F8FAFC',
+  card: '#FFFFFF',
   text: '#111827',
   textSecondary: '#64748B',
   border: '#E2E8F0',
@@ -15,15 +16,16 @@ const lightColors = {
 };
 
 const darkColors = {
-  primary: '#111827',     
-  primaryLight: '#1F2937',
+  primary: '#16A34A',      // High-contrast vibrant eco-green in dark mode
+  primaryLight: '#22C55E',
   accent: '#22C55E',
-  background: '#0B1220',
-  surface: '#151E2E',
-  text: '#F1F5F9',
+  background: '#0A0F1D',   // Deep refined slate navy
+  surface: '#121A2A',      // Elevated surface
+  card: '#182236',         // Card background
+  text: '#F8FAFC',         // Crisp readable text
   textSecondary: '#94A3B8',
-  border: '#263244',
-  white: '#FFFFFF',       
+  border: '#1E2E45',       // Subtle clean borders
+  white: '#FFFFFF',
   transparent: 'transparent' as const,
 };
 
