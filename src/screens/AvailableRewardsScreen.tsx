@@ -1,23 +1,33 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Animated, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  RefreshControl
+} from 'react-native';
 import { ArrowLeft, Gift, CheckCircle, Target } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { targetRewardService } from '../api/services/targetReward.service';
 import { Reward } from '../types';
 
 export const AvailableRewardsScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
-  const styles = useStyles(colors);
+  const { isDark } = useThemeMode();
+  const styles = useStyles(colors, isDark);
 
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pinnedRewardId, setPinnedRewardId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animaciones
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
@@ -118,8 +128,8 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
           `"${reward.title}" ya es tu meta actual. ¿Deseas desmarcarla?`,
           [
             { text: 'Mantener', style: 'cancel' },
-            { 
-              text: 'Desmarcar', 
+            {
+              text: 'Desmarcar',
               style: 'destructive',
               onPress: async () => {
                 await targetRewardService.clearTargetReward();
@@ -148,7 +158,7 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl
@@ -162,8 +172,8 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
         <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
           <View style={styles.titleRow}>
             <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
-              <TouchableOpacity 
-                style={styles.backButton} 
+              <TouchableOpacity
+                style={styles.backButton}
                 onPress={() => navigation.goBack()}
                 accessibilityRole="button"
                 accessibilityLabel="Volver atrás"
@@ -188,8 +198,8 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
               const isPinned = pinnedRewardId === reward._id;
 
               return (
-                <View 
-                  key={reward._id} 
+                <View
+                  key={reward._id}
                   style={[
                     styles.rewardCard,
                     isPinned && styles.rewardCardPinned
@@ -212,10 +222,10 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
                       <Text style={styles.rewardPoints}>{reward.pointsCost.toLocaleString()} puntos requeridos</Text>
                     </View>
                   </View>
-                  
+
                   <Text style={styles.rewardDescription}>{reward.description}</Text>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[
                       styles.actionButton,
                       isPinned && styles.actionButtonPinned
@@ -238,8 +248,8 @@ export const AvailableRewardsScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface },
+const useStyles = (colors: typeof theme.colors, isDark: boolean) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { paddingHorizontal: theme.spacing.m, paddingTop: 4, paddingBottom: 100 },
   header: { marginBottom: 16, marginTop: 2 },
   titleRow: {
@@ -262,23 +272,23 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   rewardCardPinned: {
     borderColor: '#16A34A',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: isDark ? '#16A34A15' : '#F0FDF4',
     borderWidth: 2,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  iconBg: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 14, 
-    backgroundColor: colors.surface, 
+  iconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginRight: 14 
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14
   },
   iconBgPinned: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: isDark ? '#16A34A25' : '#DCFCE7',
     borderColor: '#16A34A',
   },
   cardTitleContainer: { flex: 1 },
@@ -287,13 +297,13 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: isDark ? '#16A34A25' : '#DCFCE7',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
     marginLeft: 6,
   },
-  pinnedBadgeText: { fontSize: 11, fontWeight: '800', color: '#16A34A' },
+  pinnedBadgeText: { fontSize: 11, fontWeight: '800', color: isDark ? '#22C55E' : '#16A34A' },
   rewardPoints: { fontSize: 14, fontWeight: '800', color: '#16A34A' },
   rewardDescription: { fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginBottom: 16 },
   actionButton: {

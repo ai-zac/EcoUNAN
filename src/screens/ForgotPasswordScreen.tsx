@@ -102,7 +102,7 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
         <ArrowLeft color={colors.text} size={24} />
       </TouchableOpacity>
       
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {step === 1 && (
           <>
             <Animated.View style={[styles.header, { opacity: fadeAnim1, transform: [{ translateY: slideAnim1 }] }]}>

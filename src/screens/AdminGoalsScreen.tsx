@@ -1,6 +1,8 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import {
+  View, Text, StyleSheet, SafeAreaView, ScrollView,
+  TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput,
+} from 'react-native';
 import { ArrowLeft, Edit, EyeOff, Power, Trash2, Target } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -280,7 +282,7 @@ export const AdminGoalsScreen = ({ navigation }: any) => {
               <View style={{ width: 10 }} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
-                placeholder="Puntos"
+                placeholder="EcoPoints"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="number-pad"
                 value={form.rewardPoints}
@@ -322,7 +324,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: theme.spacing.m },
 
   goalCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,

@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import { Check, Gift, User as UserIcon, ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/theme';
@@ -49,7 +48,7 @@ export const RedemptionSuccessScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+      
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -79,7 +78,7 @@ export const RedemptionSuccessScreen = ({ navigation, route }: any) => {
           </Animated.View>
         </View>
 
-        {/* Details Card */}
+        
         <Animated.View style={{ opacity: contentFade, transform: [{ translateY: contentSlide }], flex: 1 }}>
           <View style={styles.detailsCard}>
             <View style={styles.cardHeader}>
@@ -87,7 +86,7 @@ export const RedemptionSuccessScreen = ({ navigation, route }: any) => {
               <Text style={styles.cardSuccess}>✓ Entregado</Text>
             </View>
 
-            {/* User row */}
+            
             <View style={styles.itemRow}>
               <View style={[styles.itemIconBg, { backgroundColor: '#DBEAFE' }]}>
                 <UserIcon size={24} color="#2563EB" />
@@ -100,7 +99,7 @@ export const RedemptionSuccessScreen = ({ navigation, route }: any) => {
 
             <View style={styles.divider} />
 
-            {/* Reward row */}
+            
             <View style={styles.itemRow}>
               <View style={[styles.itemIconBg, { backgroundColor: '#FEF3C7' }]}>
                 <Gift size={24} color="#D97706" />
@@ -114,7 +113,7 @@ export const RedemptionSuccessScreen = ({ navigation, route }: any) => {
           </View>
         </Animated.View>
 
-        {/* Buttons */}
+        
         <Animated.View style={{ opacity: contentFade, paddingBottom: theme.spacing.m, gap: 10, marginTop: 20 }}>
           <TouchableOpacity 
             style={styles.actionButton} 
@@ -227,5 +226,5 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  secondaryButtonText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+  secondaryButtonText: { fontSize: 14, fontWeight: '700', color: colors.text },
 });
