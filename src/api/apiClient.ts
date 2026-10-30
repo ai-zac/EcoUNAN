@@ -60,6 +60,7 @@ apiClient.interceptors.request.use(
 );
 
 let isRoleChangeAlertVisible = false;
+let isSessionClosedAlertVisible = false;
 let lastNetworkAlertTime = 0;
 const NETWORK_ALERT_COOLDOWN_MS = 15000;
 
@@ -92,20 +93,27 @@ apiClient.interceptors.response.use(
     }
 
     if (status === 401 || (status === 403 && msg.includes('deshabilitada'))) {
-      console.warn('Unauthorized/Disabled! Logging out...');
       await tokenStorage.removeToken();
       await AsyncStorage.removeItem('@user_data');
 
-      Alert.alert('Sesión cerrada', msg || 'Tu sesión ha expirado.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (navigationRef.isReady()) {
-              navigationRef.reset({ index: 0, routes: [{ name: 'Login' as never }] });
-            }
+      if (!isSessionClosedAlertVisible) {
+        isSessionClosedAlertVisible = true;
+        Alert.alert('Sesión cerrada', msg || 'Tu sesión ha expirado.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              isSessionClosedAlertVisible = false;
+              if (navigationRef.isReady()) {
+                const currentRoute = navigationRef.getCurrentRoute()?.name;
+                if (currentRoute !== 'Login') {
+                  navigationRef.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+                }
+              }
+            },
           },
-        },
-      ]);
+        ]);
+      }
+      return Promise.reject(error);
     } else if (status === 403 && msg && (msg.includes('rol') || msg.includes('permisos') || msg.includes('role'))) {
       console.warn('Role changed! Re-fetching user data...');
       Alert.alert('Permisos cambiados', 'Tus permisos en la plataforma han cambiado. Te redirigiremos para actualizar tu sesión.', [
