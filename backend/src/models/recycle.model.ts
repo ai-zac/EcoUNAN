@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IRecycle extends Document {
   user: mongoose.Schema.Types.ObjectId;
   items: {
-    materialType: 'pet' | 'aluminio' | 'papel' | 'carton' | 'plastico';
+    materialType: string;
     weight: number;
     pointsEarned: number;
   }[];
@@ -30,7 +30,8 @@ const recycleSchema: Schema = new Schema(
         materialType: {
           type: String,
           required: true,
-          enum: ['pet', 'aluminio', 'papel', 'carton', 'plastico'],
+          trim: true,
+          lowercase: true,
         },
         weight: {
           type: Number,

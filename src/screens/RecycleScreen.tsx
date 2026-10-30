@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Alert, TextInput, Modal, ActivityIndicator, Platform, Easing } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollToTop } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, GlassWater, Coffee, FileText, Package, Droplet, Plus, Minus, Camera, QrCode, X } from 'lucide-react-native';
+import { ArrowLeft, GlassWater, Coffee, FileText, Package, Droplet, Plus, Minus, Camera, QrCode, X, Recycle, Layers, Box } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 import { RecycleService } from '../api/services/recycle.service';
+import { MaterialService } from '../api/services/material.service';
 
 interface Material {
   id: string;
@@ -16,41 +17,64 @@ interface Material {
   icon: any;
   color: string;
   bg: string;
+  unit: string;
 }
 
-const MATERIALS: Material[] = [
-  { id: 'pet', name: 'Botella PET', points: 10, icon: GlassWater, color: '#10B981', bg: '#D1FAE5' },
-  { id: 'aluminio', name: 'Lata de aluminio', points: 15, icon: Coffee, color: '#3B82F6', bg: '#EFF6FF' },
-  { id: 'papel', name: 'Papel', points: 5, icon: FileText, color: '#8B5CF6', bg: '#EDE9FE' },
-  { id: 'carton', name: 'Cartón', points: 8, icon: Package, color: '#F59E0B', bg: '#FEF3C7' },
-  { id: 'plastico', name: 'Plástico', points: 10, icon: Droplet, color: '#EF4444', bg: '#FEE2E2' },
+const ICON_MAP: Record<string, any> = {
+  GlassWater,
+  Coffee,
+  FileText,
+  Package,
+  Droplet,
+  Recycle,
+  Layers,
+  Box,
+};
+
+const DEFAULT_MATERIALS: Material[] = [
+  { id: 'pet', name: 'Botella PET', points: 10, icon: GlassWater, color: '#10B981', bg: '#D1FAE5', unit: 'kg' },
+  { id: 'aluminio', name: 'Lata de aluminio', points: 15, icon: Coffee, color: '#3B82F6', bg: '#EFF6FF', unit: 'kg' },
+  { id: 'papel', name: 'Papel', points: 5, icon: FileText, color: '#8B5CF6', bg: '#EDE9FE', unit: 'kg' },
+  { id: 'carton', name: 'Cartón', points: 8, icon: Package, color: '#F59E0B', bg: '#FEF3C7', unit: 'kg' },
+  { id: 'plastico', name: 'Plástico', points: 10, icon: Droplet, color: '#EF4444', bg: '#FEE2E2', unit: 'kg' },
 ];
 
 export const RecycleScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
-  const styles = useStyles(colors);
+  const { isDark } = useThemeMode();
+  const insets = useSafeAreaInsets();
+  const styles = useStyles(colors, insets, isDark);
   const scrollRef = useRef<any>(null);
   useScrollToTop(scrollRef);
 
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [materials, setMaterials] = useState<Material[]>(DEFAULT_MATERIALS);
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [description, setDescription] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Animaciones de entrada sutil
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
 
-  const fadeAnims = useRef(MATERIALS.map(() => new Animated.Value(0))).current;
-  const slideAnims = useRef(MATERIALS.map(() => new Animated.Value(18))).current;
-  const cardScales = useRef(MATERIALS.map(() => new Animated.Value(0.96))).current;
-  const iconScales = useRef(MATERIALS.map(() => new Animated.Value(0.3))).current;
+  const fadeAnims = useRef(DEFAULT_MATERIALS.map(() => new Animated.Value(0))).current;
+  const slideAnims = useRef(DEFAULT_MATERIALS.map(() => new Animated.Value(18))).current;
+  const cardScales = useRef(DEFAULT_MATERIALS.map(() => new Animated.Value(0.96))).current;
+  const iconScales = useRef(DEFAULT_MATERIALS.map(() => new Animated.Value(0.3))).current;
 
   const bottomFade = useRef(new Animated.Value(0)).current;
   const bottomSlide = useRef(new Animated.Value(18)).current;
 
-  const playEntranceAnimation = () => {
+  const ensureAnimCapacity = (count: number) => {
+    while (fadeAnims.length < count) {
+      fadeAnims.push(new Animated.Value(1));
+      slideAnims.push(new Animated.Value(0));
+      cardScales.push(new Animated.Value(1));
+      iconScales.push(new Animated.Value(1));
+    }
+  };
+
+  const playEntranceAnimation = (itemsToAnimate: Material[] = materials) => {
     headerFade.setValue(0);
     headerSlide.setValue(14);
     backButtonScale.setValue(0.7);
@@ -58,23 +82,23 @@ export const RecycleScreen = ({ navigation }: any) => {
     bottomFade.setValue(0);
     bottomSlide.setValue(18);
 
-    MATERIALS.forEach((_, i) => {
-      fadeAnims[i].setValue(0);
-      slideAnims[i].setValue(18);
-      cardScales[i].setValue(0.96);
-      iconScales[i].setValue(0.3);
+    ensureAnimCapacity(itemsToAnimate.length);
+
+    itemsToAnimate.forEach((_, i) => {
+      if (fadeAnims[i]) fadeAnims[i].setValue(0);
+      if (slideAnims[i]) slideAnims[i].setValue(18);
+      if (cardScales[i]) cardScales[i].setValue(0.96);
+      if (iconScales[i]) iconScales[i].setValue(0.3);
     });
 
     Animated.stagger(65, [
-      // Cabecera y botón de retroceso
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(backButtonScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       ]),
 
-      // Cascada de las 5 tarjetas de materiales e íconos con micro-pop
-      ...MATERIALS.map((_, i) =>
+      ...itemsToAnimate.map((_, i) =>
         Animated.parallel([
           Animated.timing(fadeAnims[i], { toValue: 1, duration: 280, useNativeDriver: true }),
           Animated.spring(slideAnims[i], { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -86,12 +110,32 @@ export const RecycleScreen = ({ navigation }: any) => {
         ])
       ),
 
-      // Barra inferior con botón Continuar
       Animated.parallel([
         Animated.timing(bottomFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(bottomSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
     ]).start();
+  };
+
+  const loadMaterials = async () => {
+    try {
+      const data = await MaterialService.getMaterials();
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped: Material[] = data.map(m => ({
+          id: m.key,
+          name: m.name,
+          points: m.pointsPerKg,
+          icon: ICON_MAP[m.icon] || Recycle,
+          color: m.color || '#10B981',
+          bg: m.bg || '#D1FAE5',
+          unit: m.unit || 'kg',
+        }));
+        setMaterials(mapped);
+        playEntranceAnimation(mapped);
+      }
+    } catch {
+      playEntranceAnimation(DEFAULT_MATERIALS);
+    }
   };
 
   const resetScrollToTop = (animated: boolean = false) => {
@@ -104,14 +148,14 @@ export const RecycleScreen = ({ navigation }: any) => {
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
       resetScrollToTop(false);
-      playEntranceAnimation();
+      loadMaterials();
     });
 
     const unsubscribeBlur = navigation.addListener('blur', () => {
       resetScrollToTop(false);
     });
 
-    playEntranceAnimation();
+    loadMaterials();
 
     return () => {
       unsubscribeFocus();
@@ -120,36 +164,50 @@ export const RecycleScreen = ({ navigation }: any) => {
   }, [navigation]);
 
   const handleIncrement = (id: string) => {
-    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    const current = parseFloat(quantities[id] || '0') || 0;
+    const next = Math.round((current + 0.5) * 10) / 10;
+    setQuantities(prev => ({ ...prev, [id]: String(next) }));
   };
 
   const handleDecrement = (id: string) => {
-    setQuantities(prev => {
-      const current = prev[id] || 0;
-      if (current <= 1) {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      }
-      return { ...prev, [id]: current - 1 };
-    });
+    const current = parseFloat(quantities[id] || '0') || 0;
+    const next = Math.max(0, Math.round((current - 0.5) * 10) / 10);
+    if (next <= 0) {
+      setQuantities(prev => {
+        const nextMap = { ...prev };
+        delete nextMap[id];
+        return nextMap;
+      });
+    } else {
+      setQuantities(prev => ({ ...prev, [id]: String(next) }));
+    }
   };
 
   const handleQuantityChange = (id: string, text: string) => {
-    const clean = text.replace(/[^0-9]/g, '');
-    if (!clean || clean === '0') {
+    const normalized = text.replace(',', '.');
+    const valid = normalized.replace(/[^0-9.]/g, '');
+    const parts = valid.split('.');
+    const clean = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : valid;
+
+    if (!clean) {
       setQuantities(prev => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
+        const nextMap = { ...prev };
+        delete nextMap[id];
+        return nextMap;
       });
       return;
     }
-    const num = Math.min(9999, parseInt(clean, 10));
-    setQuantities(prev => ({ ...prev, [id]: num }));
+
+    const num = parseFloat(clean);
+    if (num > 9999) return;
+
+    setQuantities(prev => ({ ...prev, [id]: clean }));
   };
 
-  const totalPoints = MATERIALS.reduce((sum, item) => sum + (quantities[item.id] || 0) * item.points, 0);
+  const totalPoints = materials.reduce((sum, item) => {
+    const weight = parseFloat(quantities[item.id] || '0') || 0;
+    return sum + Math.round(weight * item.points);
+  }, 0);
 
   const handleContinue = () => {
     setModalVisible(true);
@@ -157,10 +215,10 @@ export const RecycleScreen = ({ navigation }: any) => {
 
   const handleValidatePhoto = async () => {
     try {
-      const selected = MATERIALS.filter(m => quantities[m.id] > 0);
-      
+      const selected = materials.filter(m => (parseFloat(quantities[m.id] || '0') || 0) > 0);
+
       let result;
-      
+
       if (Platform.OS === 'web') {
         result = await ImagePicker.launchImageLibraryAsync({
           allowsEditing: true,
@@ -185,14 +243,14 @@ export const RecycleScreen = ({ navigation }: any) => {
 
       setIsSubmitting(true);
       const photoUri = result.assets[0].uri;
-      
+
       const itemsToRegister = selected.map(item => ({
         materialType: item.id,
-        weight: quantities[item.id]
+        weight: Math.round((parseFloat(quantities[item.id] || '0') || 0) * 100) / 100,
       }));
-      
+
       await RecycleService.registerRecycle(itemsToRegister, photoUri, description);
-      
+
       navigation.navigate('RecyclePending');
     } catch (error: any) {
       setModalVisible(false);
@@ -206,8 +264,7 @@ export const RecycleScreen = ({ navigation }: any) => {
   };
 
   const handleValidateQR = async () => {
-    
-    const selected = MATERIALS.filter(m => quantities[m.id] > 0);
+    const selected = materials.filter(m => (parseFloat(quantities[m.id] || '0') || 0) > 0);
     if (selected.length === 0) {
       Alert.alert('Sin materiales', 'Selecciona al menos un material antes de continuar.');
       return;
@@ -217,7 +274,7 @@ export const RecycleScreen = ({ navigation }: any) => {
     try {
       const itemsToRegister = selected.map(item => ({
         materialType: item.id,
-        weight: quantities[item.id]
+        weight: Math.round((parseFloat(quantities[item.id] || '0') || 0) * 100) / 100,
       }));
 
       await RecycleService.registerRecycle(itemsToRegister, null, description, 'inperson');
@@ -252,48 +309,53 @@ export const RecycleScreen = ({ navigation }: any) => {
           </Animated.View>
           <Text style={styles.title}>Registrar reciclaje</Text>
         </View>
-        <Text style={styles.subtitle}>Selecciona el material que deseas entregar y confirma la cantidad.</Text>
+        <Text style={styles.subtitle}>Selecciona el material que deseas entregar e ingresa el peso.</Text>
       </Animated.View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionTitle}>Tipo de material</Text>
-        
-        {MATERIALS.map((item, index) => {
-          const Icon = item.icon;
-          const qty = quantities[item.id] || 0;
-          const isSelected = qty > 0;
+
+        {materials.map((item, index) => {
+          const Icon = item.icon || Recycle;
+          const rawQty = quantities[item.id] || '';
+          const numQty = parseFloat(rawQty) || 0;
+          const isSelected = numQty > 0;
+          const fadeAnim = fadeAnims[index] || new Animated.Value(1);
+          const slideAnim = slideAnims[index] || new Animated.Value(0);
+          const cardScale = cardScales[index] || new Animated.Value(1);
+          const iconScale = iconScales[index] || new Animated.Value(1);
 
           return (
-            <Animated.View 
-              key={item.id} 
+            <Animated.View
+              key={item.id}
               style={[
-                styles.materialCard, 
+                styles.materialCard,
                 isSelected && styles.materialCardSelected,
-                { 
-                  opacity: fadeAnims[index], 
+                {
+                  opacity: fadeAnim,
                   transform: [
-                    { translateY: slideAnims[index] },
-                    { scale: cardScales[index] }
-                  ] 
+                    { translateY: slideAnim },
+                    { scale: cardScale }
+                  ]
                 }
               ]}
             >
               <View style={styles.materialHeader}>
                 <View style={styles.materialLeft}>
-                  <Animated.View style={[styles.iconBox, { backgroundColor: item.bg, transform: [{ scale: iconScales[index] }] }]}>
+                  <Animated.View style={[styles.iconBox, { backgroundColor: item.bg, transform: [{ scale: iconScale }] }]}>
                     <Icon size={20} color={item.color} />
                   </Animated.View>
                   <View>
                     <Text style={styles.materialName}>{item.name}</Text>
-                    <Text style={styles.materialPoints}>+{item.points} puntos c/u</Text>
+                    <Text style={styles.materialPoints}>+{item.points} EcoPoints / {item.unit || 'kg'}</Text>
                   </View>
                 </View>
 
                 <View style={[styles.stepper, isSelected && styles.stepperSelected]}>
-                  <TouchableOpacity 
-                    onPress={() => handleDecrement(item.id)} 
+                  <TouchableOpacity
+                    onPress={() => handleDecrement(item.id)}
                     style={[styles.stepperBtn, isSelected && styles.stepperBtnActive]}
-                    disabled={qty <= 0}
+                    disabled={numQty <= 0}
                     activeOpacity={0.7}
                   >
                     <Minus size={15} color={isSelected ? colors.accent : '#94A3B8'} strokeWidth={2.5} />
@@ -301,18 +363,18 @@ export const RecycleScreen = ({ navigation }: any) => {
 
                   <TextInput
                     style={[styles.stepperInput, isSelected && styles.stepperInputSelected]}
-                    value={qty > 0 ? String(qty) : ''}
-                    placeholder="0"
+                    value={rawQty}
+                    placeholder="0.0"
                     placeholderTextColor="#94A3B8"
                     onChangeText={(text) => handleQuantityChange(item.id, text)}
-                    keyboardType="number-pad"
+                    keyboardType="decimal-pad"
                     returnKeyType="done"
                     selectTextOnFocus
-                    maxLength={4}
+                    maxLength={6}
                   />
 
-                  <TouchableOpacity 
-                    onPress={() => handleIncrement(item.id)} 
+                  <TouchableOpacity
+                    onPress={() => handleIncrement(item.id)}
                     style={[styles.stepperBtn, styles.stepperBtnActive]}
                     activeOpacity={0.7}
                   >
@@ -324,7 +386,7 @@ export const RecycleScreen = ({ navigation }: any) => {
               {isSelected && (
                 <View style={styles.materialFooter}>
                   <Text style={styles.footerText}>Obtendrás:</Text>
-                  <Text style={styles.footerPoints}>+{qty * item.points} puntos</Text>
+                  <Text style={styles.footerPoints}>+{Math.round(numQty * item.points)} EcoPoints</Text>
                 </View>
               )}
             </Animated.View>
@@ -348,14 +410,13 @@ export const RecycleScreen = ({ navigation }: any) => {
       </ScrollView>
 
       <Animated.View style={[styles.bottomBar, { opacity: bottomFade, transform: [{ translateY: bottomSlide }] }]}>
-        <Button 
-          title="Continuar" 
+        <Button
+          title="Continuar"
           disabled={totalPoints === 0 || isSubmitting}
-          onPress={handleContinue} 
+          onPress={handleContinue}
         />
       </Animated.View>
 
-      {}
       <Modal
         animationType="slide"
         transparent={true}
@@ -367,10 +428,10 @@ export const RecycleScreen = ({ navigation }: any) => {
             <TouchableOpacity style={styles.closeModalButton} onPress={() => setModalVisible(false)}>
               <X size={24} color="#64748B" />
             </TouchableOpacity>
-            
+
             <Text style={styles.modalTitle}>Método de validación</Text>
             <Text style={styles.modalDescription}>¿Cómo deseas validar tu reciclaje?</Text>
-            
+
             <View style={styles.modalOptions}>
               <TouchableOpacity style={styles.modalOptionBtn} onPress={handleValidatePhoto}>
                 <View style={[styles.modalIconBg, { backgroundColor: '#EFF6FF' }]}>
@@ -407,11 +468,11 @@ export const RecycleScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+const useStyles = (colors: typeof theme.colors, insets: { top: number; bottom: number }, isDark: boolean) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    paddingHorizontal: theme.spacing.m, 
-    paddingTop: 4, 
+  header: {
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: 4,
     paddingBottom: 8,
   },
   titleRow: {
@@ -426,8 +487,12 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '900', color: colors.text },
   subtitle: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginLeft: 2 },
-  
-  container: { paddingHorizontal: theme.spacing.m, paddingTop: 4, paddingBottom: 100 },
+
+  container: {
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: 4,
+    paddingBottom: 70 + insets.bottom + 80,
+  },
   sectionTitle: { ...theme.typography.body, fontWeight: 'bold', marginBottom: 10 },
 
   materialCard: {
@@ -436,23 +501,23 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     borderRadius: theme.borderRadius.m,
     padding: theme.spacing.m,
     marginBottom: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     ...theme.shadows.soft,
   },
   materialCardSelected: {
     borderColor: colors.accent,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: isDark ? '#16A34A1A' : '#F0FDF4',
   },
   materialHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   materialLeft: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.m },
-  materialName: { fontSize: 16, fontWeight: 'bold', color: colors.primary, marginBottom: 2 },
+  materialName: { fontSize: 16, fontWeight: 'bold', color: isDark ? '#22C55E' : colors.primary, marginBottom: 2 },
   materialPoints: { fontSize: 14, color: colors.textSecondary },
-  
+
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -463,7 +528,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   stepperSelected: {
     borderColor: colors.accent,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   stepperBtn: {
     width: 28,
@@ -471,10 +536,10 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
   },
   stepperBtnActive: {
-    backgroundColor: '#E7F7ED',
+    backgroundColor: isDark ? '#16A34A30' : '#E7F7ED',
   },
   stepperInput: {
     fontSize: 16,
@@ -486,15 +551,22 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     paddingHorizontal: 4,
   },
   stepperInputSelected: {
-    color: colors.primary,
+    color: colors.accent,
   },
 
-  materialFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.m, paddingTop: theme.spacing.m, borderTopWidth: 1, borderTopColor: '#BBF7D0' },
+  materialFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.m, paddingTop: theme.spacing.m, borderTopWidth: 1, borderTopColor: colors.border },
   footerText: { color: colors.textSecondary, fontWeight: '500' },
   footerPoints: { color: colors.accent, fontWeight: 'bold', fontSize: 16 },
 
-  bottomBar: { padding: theme.spacing.m, paddingBottom: 100, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
-  
+  bottomBar: {
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: theme.spacing.m,
+    paddingBottom: 60 + Math.max(insets.bottom, 12),
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+
   descriptionContainer: { marginTop: theme.spacing.l },
   textInput: {
     backgroundColor: colors.surface,
@@ -572,7 +644,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     color: colors.textSecondary,
     flexWrap: 'wrap',
   },
-  
+
   loadingOverlay: {
     ...(StyleSheet.absoluteFill as any),
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

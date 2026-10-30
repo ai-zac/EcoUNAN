@@ -5,8 +5,7 @@ import User from '../models/user.model';
 import { notifyUser } from '../services/notification.service';
 import { signApprovalQr, verifyApprovalQr } from '../utils/qr';
 import { checkAndNotifyRankUpgrade } from '../utils/ranks';
-
-const VALID_MATERIALS = ['pet', 'aluminio', 'papel', 'carton', 'plastico'];
+import { getCachedMaterialMap } from './material.controller';
 
 export class RecycleController {
 
@@ -48,16 +47,21 @@ export class RecycleController {
         res.status(400).json({ success: false, error: 'items debe ser un array de 1 a 20 elementos' });
         return;
       }
+
+      const materialMap = await getCachedMaterialMap();
+
       for (const item of parsedItems) {
-        if (!VALID_MATERIALS.includes(item.materialType)) {
-          console.error('[registerRecycle:400] Invalid material:', item.materialType);
-          res.status(400).json({ success: false, error: `Material inválido: ${item.materialType}. Válidos: ${VALID_MATERIALS.join(', ')}` });
+        const matKey = String(item.materialType || '').toLowerCase().trim();
+        const matDef = materialMap[matKey];
+        if (!matDef || !matDef.isActive) {
+          console.error('[registerRecycle:400] Invalid or inactive material:', item.materialType);
+          res.status(400).json({ success: false, error: `Material no disponible o inválido: ${item.materialType}` });
           return;
         }
         const w = Number(item.weight);
         if (!Number.isFinite(w) || w <= 0 || w > 9999) {
           console.error('[registerRecycle:400] Invalid weight/quantity:', item.weight);
-          res.status(400).json({ success: false, error: 'La cantidad debe ser un número positivo' });
+          res.status(400).json({ success: false, error: 'El peso debe ser un número positivo (hasta 9999)' });
           return;
         }
       }
@@ -66,13 +70,16 @@ export class RecycleController {
       let totalPoints = 0;
 
       const processedItems = parsedItems.map((item: any) => {
-        const weight = Number(item.weight);
-        const pointsEarned = Math.floor(weight * 10);
-        totalWeight += weight;
+        const matKey = String(item.materialType || '').toLowerCase().trim();
+        const matDef = materialMap[matKey];
+        const weight = Math.round(Number(item.weight) * 100) / 100;
+        const pointsPerKg = matDef ? matDef.pointsPerKg : 10;
+        const pointsEarned = Math.round(weight * pointsPerKg);
+        totalWeight = Math.round((totalWeight + weight) * 100) / 100;
         totalPoints += pointsEarned;
 
         return {
-          materialType: item.materialType,
+          materialType: matKey,
           weight,
           pointsEarned
         };

@@ -47,6 +47,7 @@ import { AdminEditRewardScreen } from '../screens/AdminEditRewardScreen';
 import { AdminRecyclesScreen } from '../screens/AdminRecyclesScreen';
 import { AdminCreateStaffScreen } from '../screens/AdminCreateStaffScreen';
 import { AdminGoalsScreen } from '../screens/AdminGoalsScreen';
+import { AdminMaterialsScreen } from '../screens/AdminMaterialsScreen';
 import { AdminRedemptionsScreen } from '../screens/AdminRedemptionsScreen';
 import { AdminActivityLogScreen } from '../screens/AdminActivityLogScreen';
 import { AdminReportsScreen } from '../screens/AdminReportsScreen';
@@ -83,6 +84,7 @@ export type RootStackParamList = {
   AdminRecycles: undefined;
   AdminCreateStaff: undefined;
   AdminGoals: undefined;
+  AdminMaterials: undefined;
   AdminRedemptions: undefined;
   AdminActivityLog: undefined;
   AdminReports: undefined;
@@ -235,6 +237,7 @@ export const AppNavigator = () => {
         <Stack.Screen name="AdminRecycles" component={AdminRecyclesScreen} />
         <Stack.Screen name="AdminCreateStaff" component={AdminCreateStaffScreen} />
         <Stack.Screen name="AdminGoals" component={AdminGoalsScreen} />
+        <Stack.Screen name="AdminMaterials" component={AdminMaterialsScreen} />
         <Stack.Screen name="AdminRedemptions" component={AdminRedemptionsScreen} />
         <Stack.Screen name="AdminActivityLog" component={AdminActivityLogScreen} />
         <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
