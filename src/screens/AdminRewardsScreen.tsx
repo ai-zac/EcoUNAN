@@ -1,39 +1,47 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Animated, RefreshControl } from 'react-native';
-import { 
-  ArrowLeft, 
-  Edit, 
-  EyeOff, 
-  Power, 
-  Trash2, 
-  Gift, 
-  Coffee, 
-  Shirt, 
-  BookOpen, 
-  Utensils, 
-  ShoppingBag, 
-  Award, 
-  Trophy, 
-  Medal, 
-  Ticket, 
-  Sparkles, 
-  Droplet, 
-  Star, 
-  Zap, 
-  Smartphone, 
-  Package, 
-  Plus 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  RefreshControl
+} from 'react-native';
+import {
+  ArrowLeft,
+  Edit,
+  EyeOff,
+  Power,
+  Trash2,
+  Gift,
+  Coffee,
+  Shirt,
+  BookOpen,
+  Utensils,
+  ShoppingBag,
+  Award,
+  Trophy,
+  Medal,
+  Ticket,
+  Sparkles,
+  Droplet,
+  Star,
+  Zap,
+  Smartphone,
+  Package,
+  Plus
 } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { Reward } from '../types';
 
-// Caché en memoria para entrada instantánea
 let cachedRewards: Reward[] | null = null;
 
-// Renderizador dinámico de íconos de recompensas
 const renderRewardIcon = (name?: string, color: string = '#D97706', size: number = 22) => {
   switch (name) {
     case 'Coffee': return <Coffee size={size} color={color} />;
@@ -59,26 +67,26 @@ const renderRewardIcon = (name?: string, color: string = '#D97706', size: number
 
 export const AdminRewardsScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
-  const styles = useStyles(colors);
+  const { isDark } = useThemeMode();
+  const styles = useStyles(colors, isDark);
 
   const [rewards, setRewards] = useState<Reward[]>(cachedRewards || []);
   const [loading, setLoading] = useState(!cachedRewards);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animaciones de entrada idénticas a RecycleScreen
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
   const addButtonScale = useRef(new Animated.Value(0.7)).current;
 
-  // Pools dinámicos de Animated.Value para las tarjetas de recompensas
   const fadeAnims = useRef<Animated.Value[]>([]).current;
   const slideAnims = useRef<Animated.Value[]>([]).current;
   const cardScales = useRef<Animated.Value[]>([]).current;
   const iconScales = useRef<Animated.Value[]>([]).current;
 
   const ensureAnimCapacity = (count: number) => {
-    while (fadeAnims.length < count) {
+    const safeCount = Math.min(Math.max(0, Math.floor(count || 0)), 200);
+    while (fadeAnims.length < safeCount) {
       fadeAnims.push(new Animated.Value(1));
       slideAnims.push(new Animated.Value(0));
       cardScales.push(new Animated.Value(1));
@@ -103,7 +111,7 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
     }
 
     const animations: Animated.CompositeAnimation[] = [
-      // Cabecera y botón atrás / botón agregar
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -222,7 +230,7 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
     try {
       await rewardService.updateReward(id, { isActive: !currentStatus });
       setRewards(prev => {
-        const next = prev.map(reward => 
+        const next = prev.map(reward =>
           reward._id === id ? { ...reward, isActive: !currentStatus } : reward
         );
         cachedRewards = next;
@@ -237,8 +245,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
   const deleteReward = (id: string) => {
     Alert.alert('Confirmar eliminación', '¿Estás seguro de que deseas eliminar esta recompensa del catálogo?', [
       { text: 'Cancelar', style: 'cancel' },
-      { 
-        text: 'Eliminar', 
+      {
+        text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -261,8 +269,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
         <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Volver atrás"
@@ -272,8 +280,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
         </Animated.View>
         <Text style={styles.title}>Recompensas</Text>
         <Animated.View style={{ transform: [{ scale: addButtonScale }] }}>
-          <TouchableOpacity 
-            style={styles.addButton} 
+          <TouchableOpacity
+            style={styles.addButton}
             onPress={() => navigation.navigate('AdminEditReward')}
             activeOpacity={0.8}
           >
@@ -283,22 +291,22 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
         </Animated.View>
       </Animated.View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         <Text style={styles.sectionTitle}>Recompensas registradas</Text>
-        
+
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : rewards.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Gift size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No hay recompensas registradas aún.</Text>
-            <TouchableOpacity 
-              style={styles.emptyAddBtn} 
+            <TouchableOpacity
+              style={styles.emptyAddBtn}
               onPress={() => navigation.navigate('AdminEditReward')}
               activeOpacity={0.8}
             >
@@ -310,8 +318,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
             ensureAnimCapacity(index + 1);
 
             return (
-              <Animated.View 
-                key={item._id} 
+              <Animated.View
+                key={item._id}
                 style={[
                   styles.cardWrapper,
                   {
@@ -325,12 +333,12 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
               >
                 <View style={styles.rewardCard}>
                   <View style={styles.cardHeader}>
-                    <Animated.View 
+                    <Animated.View
                       style={[
-                        styles.iconBox, 
-                        { 
+                        styles.iconBox,
+                        {
                           backgroundColor: item.iconBg || '#FEF3C7',
-                          transform: [{ scale: iconScales[index] }] 
+                          transform: [{ scale: iconScales[index] }]
                         }
                       ]}
                     >
@@ -358,8 +366,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
                   <View style={styles.divider} />
 
                   <View style={styles.actionsRow}>
-                    <TouchableOpacity 
-                      style={styles.actionButton} 
+                    <TouchableOpacity
+                      style={styles.actionButton}
                       onPress={() => navigation.navigate('AdminEditReward', { rewardId: item._id })}
                       activeOpacity={0.7}
                     >
@@ -369,8 +377,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
 
                     <View style={styles.actionSpacing} />
 
-                    <TouchableOpacity 
-                      style={styles.actionButton} 
+                    <TouchableOpacity
+                      style={styles.actionButton}
                       onPress={() => toggleRewardStatus(item._id, item.isActive)}
                       activeOpacity={0.7}
                     >
@@ -386,8 +394,8 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
 
                     <View style={styles.actionSpacing} />
 
-                    <TouchableOpacity 
-                      style={[styles.actionButton, styles.deleteButton]} 
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.deleteButton]}
                       onPress={() => deleteReward(item._id)}
                       activeOpacity={0.7}
                     >
@@ -405,32 +413,32 @@ export const AdminRewardsScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+const useStyles = (colors: typeof theme.colors, isDark: boolean) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: theme.spacing.m, 
-    paddingTop: theme.spacing.xl, 
-    paddingBottom: theme.spacing.m 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.m
   },
-  backButton: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    borderWidth: 1, 
-    borderColor: colors.border, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginRight: 12 
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
   },
   title: { fontSize: 24, fontWeight: '900', color: colors.text, flex: 1 },
-  addButton: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: colors.primary, 
-    paddingHorizontal: 14, 
-    paddingVertical: 8, 
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     ...theme.shadows.soft,
   },
@@ -475,7 +483,10 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: colors.surface,
   },
-  deleteButton: { borderColor: '#FEE2E2', backgroundColor: '#FEF2F2' },
+  deleteButton: {
+    borderColor: isDark ? '#EF444440' : '#FEE2E2',
+    backgroundColor: isDark ? '#EF444415' : '#FEF2F2',
+  },
   actionSpacing: { width: 8 },
   actionIcon: { marginRight: 6 },
   actionText: { fontSize: 12, fontWeight: '800', color: colors.text },
