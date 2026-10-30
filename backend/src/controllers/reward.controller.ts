@@ -11,7 +11,7 @@ export class RewardController {
 
   public async getRewards(req: Request, res: Response): Promise<void> {
     try {
-      const rewards = await Reward.find({ isActive: true });
+      const rewards = await Reward.find({ isActive: true }).lean();
       res.status(200).json({ success: true, data: rewards });
     } catch (error: any) {
       console.error('[500]', error);
@@ -110,7 +110,8 @@ export class RewardController {
       const userId = (req as any).user._id;
       const redemptions = await Redemption.find({ user: userId })
         .populate('reward')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
       res.status(200).json({ success: true, data: redemptions });
     } catch (error: any) {

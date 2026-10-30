@@ -150,7 +150,8 @@ const totalUsers = await User.countDocuments({ role: 'user' });
           .sort({ createdAt: -1 })
           .limit(100)
           .populate('user', 'name')
-          .populate('validatedBy', 'name role');
+          .populate('validatedBy', 'name role')
+          .lean();
       }
 
       if (type === 'all' || type === 'redemption') {
@@ -159,7 +160,8 @@ const totalUsers = await User.countDocuments({ role: 'user' });
           .limit(100)
           .populate('user', 'name')
           .populate('reward', 'title pointsCost')
-          .populate('validatedBy', 'name role');
+          .populate('validatedBy', 'name role')
+          .lean();
       }
 
       let mixedActivity: any[] = [];

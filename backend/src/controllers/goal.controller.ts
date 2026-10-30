@@ -125,26 +125,36 @@ export class GoalController {
   public async getMyProgress(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user._id;
-      const goals = await Goal.find({ isActive: true });
+      const goals = await Goal.find({ isActive: true }).lean();
       const goalIds = goals.map((g: any) => g._id);
 
-      const userClaims = await GoalClaim.find({ user: userId, goal: { $in: goalIds } }).select('goal');
+      const [userClaims, userRecycles] = await Promise.all([
+        GoalClaim.find({ user: userId, goal: { $in: goalIds } }).select('goal').lean(),
+        Recycle.find({ user: userId, status: 'validated' }).select('createdAt').lean(),
+      ]);
+
       const claimedSet = new Set(userClaims.map((c: any) => String(c.goal)));
+      const now = Date.now();
 
-      const data = await Promise.all(
-        goals.map(async (goal: any) => {
-          const isClaimed = claimedSet.has(String(goal._id)) || (goal.claimedBy || []).some(
-            (c: any) => String(c) === String(userId)
-          );
+      const data = goals.map((goal: any) => {
+        const isClaimed = claimedSet.has(String(goal._id)) || (goal.claimedBy || []).some(
+          (c: any) => String(c) === String(userId)
+        );
+        const end = Math.min(now, new Date(goal.endDate).getTime());
+        const start = new Date(goal.createdAt).getTime();
 
-          return {
-            goalId: goal._id,
-            progress: await computeProgress(String(userId), goal),
-            target: goal.targetRecycles,
-            claimed: isClaimed,
-          };
-        })
-      );
+        const progress = userRecycles.filter((r: any) => {
+          const t = new Date(r.createdAt).getTime();
+          return t >= start && t <= end;
+        }).length;
+
+        return {
+          goalId: goal._id,
+          progress,
+          target: goal.targetRecycles,
+          claimed: isClaimed,
+        };
+      });
 
       res.status(200).json({ success: true, data });
     } catch (error: any) {
