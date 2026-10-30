@@ -11,9 +11,19 @@ const VALID_MATERIALS = ['pet', 'aluminio', 'papel', 'carton', 'plastico'];
 export class RecycleController {
 
   public async registerRecycle(req: Request, res: Response): Promise<void> {
+    // ⚠️ ERROR CONTROLADO PARA LA DEMO CON LA PROFESORA (Descomentar si se requiere simular error)
+    /*
+    res.status(400).json({
+      success: false,
+      error: 'Error de validación controlado (Código 400): El peso supera el límite permitido para esta entrega.'
+    });
+    return;
+    */
+
     try {
+      const uploadedFile = (req as any).file;
       console.log('[registerRecycle] Body:', req.body);
-      console.log('[registerRecycle] File:', req.file ? { filename: req.file.filename, mimetype: req.file.mimetype, size: req.file.size } : 'No file');
+      console.log('[registerRecycle] File:', uploadedFile ? { filename: uploadedFile.filename, mimetype: uploadedFile.mimetype, size: uploadedFile.size } : 'No file');
       const { items, description, validationMode } = req.body;
       const user = (req as any).user;
 
@@ -25,7 +35,7 @@ export class RecycleController {
 
       const mode = validationMode === 'inperson' ? 'inperson' : 'photo';
 
-      if (mode === 'photo' && !req.file) {
+      if (mode === 'photo' && !uploadedFile) {
         console.error('[registerRecycle:400] Missing proofImage file');
         res.status(400).json({ success: false, error: 'La foto de evidencia es obligatoria' });
         return;
@@ -69,8 +79,8 @@ export class RecycleController {
       });
 
       let proofImage = undefined;
-      if (req.file) {
-        proofImage = `/uploads/${req.file.filename}`;
+      if (uploadedFile) {
+        proofImage = `/uploads/${uploadedFile.filename}`;
       }
 
       const recycle = await Recycle.create({
@@ -93,10 +103,41 @@ export class RecycleController {
 
   public async getPendingRecycles(req: Request, res: Response): Promise<void> {
     try {
-      const pendingRecycles = await Recycle.find({ status: 'pending' })
-        .populate('user', 'name email')
-        .sort({ createdAt: 1 });
+      const rawPage = Number(req.query.page);
+      const rawLimit = Number(req.query.limit);
+      const pageParam = req.query.page !== undefined ? (Number.isFinite(rawPage) ? Math.max(Math.floor(rawPage), 1) : 1) : null;
+      const limitParam = req.query.limit !== undefined ? (Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 100) : 20) : null;
 
+      if (pageParam || limitParam) {
+        const page = pageParam || 1;
+        const limit = limitParam || 20;
+        const skip = (page - 1) * limit;
+
+        const [total, data] = await Promise.all([
+          Recycle.countDocuments({ status: 'pending' }),
+          Recycle.find({ status: 'pending' })
+            .populate('user', 'name email')
+            .sort({ createdAt: 1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        ]);
+
+        res.setHeader('X-Total-Count', total.toString());
+        res.status(200).json({ success: true, total, page, limit, data });
+        return;
+      }
+
+      const [total, pendingRecycles] = await Promise.all([
+        Recycle.countDocuments({ status: 'pending' }),
+        Recycle.find({ status: 'pending' })
+          .populate('user', 'name email')
+          .sort({ createdAt: 1 })
+          .limit(100)
+          .lean(),
+      ]);
+
+      res.setHeader('X-Total-Count', total.toString());
       res.status(200).json({ success: true, data: pendingRecycles });
     } catch (error: any) {
       console.error('[500]', error);
