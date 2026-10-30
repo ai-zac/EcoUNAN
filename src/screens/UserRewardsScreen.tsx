@@ -1,26 +1,35 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useScrollToTop } from '@react-navigation/native';
-import { 
-  ArrowLeft, 
-  Gift, 
-  Coffee, 
-  Shirt, 
-  BookOpen, 
-  Utensils, 
-  ShoppingBag, 
-  Award, 
-  Trophy, 
-  Medal, 
-  Ticket, 
-  Sparkles, 
-  Droplet, 
-  Star, 
-  Zap, 
-  Smartphone, 
-  Package 
+import {
+  ArrowLeft,
+  Gift,
+  Coffee,
+  Shirt,
+  BookOpen,
+  Utensils,
+  ShoppingBag,
+  Award,
+  Trophy,
+  Medal,
+  Ticket,
+  Sparkles,
+  Droplet,
+  Star,
+  Zap,
+  Smartphone,
+  Package
 } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -32,11 +41,9 @@ import { Reward } from '../types';
 const CACHE_REWARDS_KEY = '@ecounan_user_rewards';
 const CACHE_POINTS_KEY = '@ecounan_user_pts';
 
-// Caché en memoria para animación instantánea en Frame 0
 let memoryRewardsCache: Reward[] = [];
 let memoryPointsCache: number = 0;
 
-// Hidratar en segundo plano desde AsyncStorage
 AsyncStorage.multiGet([CACHE_REWARDS_KEY, CACHE_POINTS_KEY])
   .then((results) => {
     results.forEach(([key, val]) => {
@@ -76,7 +83,7 @@ const AnimatedRewardCard: React.FC<AnimatedRewardCardProps> = React.memo(({
   styles,
   getIcon,
 }) => {
-  // Animación en cascada: baja desde -18 a 0 con resorte suave y micro-pop del ícono
+
   const slideAnim = useRef(new Animated.Value(-18)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.96)).current;
@@ -166,7 +173,7 @@ const AnimatedRewardCard: React.FC<AnimatedRewardCardProps> = React.memo(({
                 { color: canAfford ? '#16A34A' : '#EF4444' },
               ]}
             >
-              {item.pointsCost.toLocaleString()} puntos
+              {item.pointsCost.toLocaleString()} EcoPoints
             </Text>
           </View>
         </View>
@@ -190,13 +197,20 @@ const AnimatedRewardCard: React.FC<AnimatedRewardCardProps> = React.memo(({
         <TouchableOpacity
           style={[
             styles.actionButton,
-            (isOutOfStock || !canAfford) && { backgroundColor: '#94A3B8' },
+            (isOutOfStock || !canAfford) && styles.actionButtonDisabled,
           ]}
           disabled={isOutOfStock || !canAfford}
           onPress={onRedeem}
           activeOpacity={0.8}
         >
-          <Text style={styles.actionButtonText}>Canjear</Text>
+          <Text
+            style={[
+              styles.actionButtonText,
+              (isOutOfStock || !canAfford) && styles.actionButtonDisabledText,
+            ]}
+          >
+            Canjear
+          </Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -286,7 +300,7 @@ export const UserRewardsScreen = ({ navigation }: any) => {
     };
   }, []);
 
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
   const hasOpenedChildScreenRef = useRef(false);
 
@@ -468,7 +482,7 @@ export const UserRewardsScreen = ({ navigation }: any) => {
           />
         }
       >
-        {/* Cabecera con botón volver alineado y animación */}
+
         <Animated.View
           style={[
             styles.header,
@@ -497,10 +511,9 @@ export const UserRewardsScreen = ({ navigation }: any) => {
             </Animated.View>
             <Text style={styles.title}>Canjear recompensas</Text>
           </View>
-          <Text style={styles.subtitle}>Canjea tus puntos por incentivos ecológicos.</Text>
+          <Text style={styles.subtitle}>Canjea tus EcoPoints por incentivos ecológicos.</Text>
         </Animated.View>
 
-        {/* Tarjeta de Puntos actuales */}
         <Animated.View
           style={[
             styles.pointsCard,
@@ -518,8 +531,8 @@ export const UserRewardsScreen = ({ navigation }: any) => {
               <Sparkles size={20} color="#16A34A" />
             </View>
             <View>
-              <Text style={styles.pointsLabel}>TUS PUNTOS DISPONIBLES</Text>
-              <Text style={styles.pointsValue}>{userPoints.toLocaleString()} pts</Text>
+              <Text style={styles.pointsLabel}>TUS ECOPOINTS DISPONIBLES</Text>
+              <Text style={styles.pointsValue}>{userPoints.toLocaleString()} EcoPoints</Text>
             </View>
           </View>
           <View style={styles.pointsBadgeRight}>
@@ -534,7 +547,7 @@ export const UserRewardsScreen = ({ navigation }: any) => {
             <Gift size={36} color={colors.textSecondary} style={{ marginBottom: 12 }} />
             <Text style={styles.emptyTitle}>No hay recompensas disponibles</Text>
             <Text style={styles.emptySubtitle}>
-              Pronto agregaremos nuevos incentivos para canjear con tus puntos.
+              Pronto agregaremos nuevos incentivos para canjear con tus EcoPoints.
             </Text>
           </View>
         ) : (
@@ -671,6 +684,15 @@ const useStyles = (colors: typeof theme.colors) =>
       ...theme.shadows.soft,
     },
     actionButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+    actionButtonDisabled: {
+      backgroundColor: colors.border,
+      opacity: 0.65,
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    actionButtonDisabledText: {
+      color: colors.textSecondary,
+    },
 
     emptyContainer: {
       alignItems: 'center',
