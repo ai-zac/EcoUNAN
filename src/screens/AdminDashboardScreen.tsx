@@ -1,25 +1,23 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Animated, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { useScrollToTop } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenStorage } from '../utils/tokenStorage';
-import { ClipboardCheck, Gift, Trash2, FileText, GlassWater, Medal, Users, Target, ShoppingBag, LogOut, User as UserIcon, Settings, HelpCircle, X, Package, Recycle } from 'lucide-react-native';
+import { ClipboardCheck, Gift, Trash2, FileText, GlassWater, Medal, Users, Target, ShoppingBag, LogOut, User as UserIcon, Settings, HelpCircle, X, Package, Recycle, Layers } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { AdminService, DashboardData } from '../api/services/admin.service';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
-// Caché en memoria para carga instantánea al abrir el panel principal
 let cachedDashboardData: DashboardData | null = null;
 
 export const AdminDashboardScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
+  const { isDark } = useThemeMode();
   const styles = useStyles(colors);
   const scrollRef = useRef<any>(null);
   useScrollToTop(scrollRef);
 
-  // Animaciones sutiles tipo RecycleScreen con física spring y micro-pop
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const badgeScale = useRef(new Animated.Value(0.7)).current;
@@ -52,14 +50,14 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   usePushNotifications(token);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(cachedDashboardData);
 
-  
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const modalScale = useRef(new Animated.Value(0.8)).current;
   const modalOpacity = useRef(new Animated.Value(0)).current;
 
   const ensureActivityCapacity = (count: number) => {
-    while (activityFades.length < count) {
+    const safeCount = Math.min(Math.max(0, Math.floor(count || 0)), 200);
+    while (activityFades.length < safeCount) {
       activityFades.push(new Animated.Value(1));
       activitySlides.push(new Animated.Value(0));
       activityCardScales.push(new Animated.Value(1));
@@ -100,28 +98,25 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
     }
 
     const steps: Animated.CompositeAnimation[] = [
-      // 1. Cabecera y badge con micro-pop
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(badgeScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       ]),
 
-      // 2. Grilla de estadísticas (slide y scale spring)
       Animated.parallel([
         Animated.timing(statsFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(statsSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(statsScale, { toValue: 1, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
 
-      // 3. Cabecera de Actividad reciente
       Animated.parallel([
         Animated.timing(activitySectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(activitySectionSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
     ];
 
-    // 4. Cascada de ítems de actividad reciente con micro-pop de ícono
     if (count > 0) {
       for (let i = 0; i < count; i++) {
         steps.push(
@@ -138,7 +133,6 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
       }
     }
 
-    // 5. Bloque de botones de Navegación
     steps.push(
       Animated.parallel([
         Animated.timing(navSectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
@@ -147,7 +141,6 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
       ])
     );
 
-    // 6. Bloque de Personalización y Cuenta
     steps.push(
       Animated.parallel([
         Animated.timing(accountSectionFade, { toValue: 1, duration: 280, useNativeDriver: true }),
@@ -224,7 +217,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
-    // Solo se anima al entrar a la app (primer montaje del panel)
+
     if (!hasAnimatedOnEntry.current) {
       hasAnimatedOnEntry.current = true;
       playEntranceAnimation();
@@ -247,7 +240,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
     };
 
     const unsubscribeFocus = navigation.addListener('focus', () => {
-      // Al volver de una sub-ventana, NO se anima. Solo refresca datos en silencio
+
       fetchData(true);
       startPolling();
     });
@@ -283,7 +276,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent || '#22C55E'} />
         }
       >
-        
+
         {}
         <Animated.View style={{ opacity: headerFade, transform: [{ translateY: headerSlide }] }}>
           <View style={styles.header}>
@@ -302,13 +295,13 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         ) : (
           <>
             {}
-            <Animated.View 
-              style={{ 
-                opacity: statsFade, 
+            <Animated.View
+              style={{
+                opacity: statsFade,
                 transform: [
                   { translateY: statsSlide },
                   { scale: statsScale }
-                ] 
+                ]
               }}
             >
               <View style={styles.statsGrid}>
@@ -379,22 +372,22 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         )}
 
         {}
-        <Animated.View 
-          style={{ 
-            opacity: navSectionFade, 
+        <Animated.View
+          style={{
+            opacity: navSectionFade,
             transform: [
               { translateY: navSectionSlide },
               { scale: navSectionScale }
-            ] 
+            ]
           }}
         >
           <Text style={styles.sectionTitle}>Navegación</Text>
-          
+
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRecycles')}>
-            <ClipboardCheck size={20} color={colors.text} />
+            <ClipboardCheck size={20} color="#0F172A" />
             <Text style={styles.navButtonText}>Validar reciclaje</Text>
           </TouchableOpacity>
-          
+
           {(myRole === 'admin' || myRole === 'superadmin') && (
             <>
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminReports')}>
@@ -403,44 +396,48 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRewards')}>
-                <Gift size={20} color={colors.text} />
+                <Gift size={20} color="#0F172A" />
                 <Text style={styles.navButtonText}>Gestionar recompensas</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminGoals')}>
-                <Target size={20} color={colors.text} />
+                <Target size={20} color="#0F172A" />
                 <Text style={styles.navButtonText}>Gestionar metas</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminMaterials')}>
+                <Layers size={20} color="#10B981" />
+                <Text style={styles.navButtonText}>Configurar materiales</Text>
               </TouchableOpacity>
             </>
           )}
 
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminRedemptions')}>
-            <ShoppingBag size={20} color={colors.text} />
+            <ShoppingBag size={20} color="#0F172A" />
             <Text style={styles.navButtonText}>Canjes realizados</Text>
           </TouchableOpacity>
-          
 
           {myRole === 'superadmin' && (
             <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('AdminUsers')}>
-              <Users size={20} color={colors.text} />
+              <Users size={20} color="#0F172A" />
               <Text style={styles.navButtonText}>Gestión de Usuarios</Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Ranking')}>
-            <Medal size={20} color={colors.text} />
+            <Medal size={20} color="#0F172A" />
             <Text style={styles.navButtonText}>Ver Ranking Global</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {}
-        <Animated.View 
-          style={{ 
-            opacity: accountSectionFade, 
+        <Animated.View
+          style={{
+            opacity: accountSectionFade,
             transform: [
               { translateY: accountSectionSlide },
               { scale: accountSectionScale }
-            ] 
+            ]
           }}
         >
           <Text style={styles.sectionTitle}>Personalización y Cuenta</Text>
@@ -460,7 +457,16 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
             <Text style={styles.navButtonText}>Ayuda y soporte</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.navButton, { borderColor: '#FEE2E2', backgroundColor: '#FEF2F2' }]} onPress={handleLogout}>
+          <TouchableOpacity
+            style={[
+              styles.navButton,
+              {
+                borderColor: isDark ? '#EF444440' : '#FEE2E2',
+                backgroundColor: isDark ? '#EF444415' : '#FEF2F2',
+              },
+            ]}
+            onPress={handleLogout}
+          >
             <LogOut size={20} color="#EF4444" />
             <Text style={[styles.navButtonText, { color: '#EF4444' }]}>Cerrar sesión</Text>
           </TouchableOpacity>
@@ -491,7 +497,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                     <Text style={styles.detailValue}>{selectedActivity.user}</Text>
                   </View>
                   <View style={styles.divider} />
-                  
+
                   {selectedActivity.type === 'redemption' ? (
                     <>
                       <View style={styles.detailRow}>
@@ -500,8 +506,8 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Puntos gastados:</Text>
-                        <Text style={[styles.detailValue, { color: '#EF4444' }]}>{selectedActivity.details?.pointsSpent} pts</Text>
+                        <Text style={styles.detailLabel}>EcoPoints canjeados:</Text>
+                        <Text style={[styles.detailValue, { color: '#EF4444' }]}>{selectedActivity.details?.pointsSpent} EcoPoints</Text>
                       </View>
                     </>
                   ) : (
@@ -517,8 +523,8 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Puntos ganados:</Text>
-                        <Text style={[styles.detailValue, { color: '#10B981' }]}>+{selectedActivity.details?.points} pts</Text>
+                        <Text style={styles.detailLabel}>EcoPoints ganados:</Text>
+                        <Text style={[styles.detailValue, { color: '#10B981' }]}>+{selectedActivity.details?.points} EcoPoints</Text>
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>
@@ -527,7 +533,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                       </View>
                     </>
                   )}
-                  
+
                   <View style={styles.divider} />
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Validado por:</Text>
@@ -546,7 +552,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { padding: theme.spacing.m, paddingBottom: 100 },
-  
+
   header: { marginBottom: theme.spacing.xl, marginTop: theme.spacing.l },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
   title: { fontSize: 26, fontWeight: '900', color: colors.text, flex: 1 },
@@ -557,15 +563,15 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: theme.spacing.m, marginTop: theme.spacing.s },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
   seeAllText: { fontSize: 14, fontWeight: '700', color: colors.primary, marginBottom: 2 },
-  
+
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: theme.spacing.xl },
-  statCard: { 
-    width: '48%', 
-    backgroundColor: colors.background, 
-    borderWidth: 1, 
-    borderColor: colors.border, 
-    borderRadius: 16, 
-    padding: theme.spacing.m, 
+  statCard: {
+    width: '48%',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: theme.spacing.m,
     marginBottom: 12,
     ...theme.shadows.soft,
   },
@@ -603,7 +609,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   },
   navButtonText: { fontSize: 16, fontWeight: '800', color: colors.text, marginLeft: 16 },
 
-  
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

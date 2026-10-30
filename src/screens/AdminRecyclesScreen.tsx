@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Modal, RefreshControl, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Image, Modal, RefreshControl, Animated } from 'react-native';
 import { useScrollToTop } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { ArrowLeft, GlassWater, FileText, CheckCircle, Package, Droplet, Coffee, QrCode, ImageOff, User } from 'lucide-react-native';
@@ -12,37 +11,32 @@ import { API_BASE_URL, assetUrl } from '../api/apiClient';
 import { showToast } from '../components/Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Caché en memoria para animación instantánea al entrar
 let cachedPendingRecycles: any[] | null = null;
 
 export const AdminRecyclesScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
 
   const [validations, setValidations] = useState<any[]>(cachedPendingRecycles || []);
   const [loading, setLoading] = useState(!cachedPendingRecycles);
   const [refreshing, setRefreshing] = useState(false);
 
-  
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [myRole, setMyRole] = useState<string>('admin');
 
-  
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [approvalQrData, setApprovalQrData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
 
-  // Animaciones idénticas a RecycleScreen (física spring y micro-pop activas en pull-to-refresh)
   const headerFade = useRef(new Animated.Value(1)).current;
   const headerSlide = useRef(new Animated.Value(0)).current;
   const backButtonScale = useRef(new Animated.Value(1)).current;
 
-  // Pools dinámicos de Animated.Value para las tarjetas de validación
   const fadeAnims = useRef<Animated.Value[]>([]).current;
   const slideAnims = useRef<Animated.Value[]>([]).current;
   const cardScales = useRef<Animated.Value[]>([]).current;
@@ -52,15 +46,14 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
   const emptySlide = useRef(new Animated.Value(0)).current;
 
   const ensureAnimCapacity = (count: number) => {
-    while (fadeAnims.length < count) {
+    const safeCount = Math.min(Math.max(0, Math.floor(count || 0)), 200);
+    while (fadeAnims.length < safeCount) {
       fadeAnims.push(new Animated.Value(1));
       slideAnims.push(new Animated.Value(0));
       cardScales.push(new Animated.Value(1));
       iconScales.push(new Animated.Value(1));
     }
   };
-
-
 
   const playCardsAnimation = (count: number) => {
     ensureAnimCapacity(count);
@@ -110,7 +103,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
-    // Al entrar a la sub-ventana no se anima, carga los datos directamente
+
     fetchPending(true);
 
     let pollingInterval: NodeJS.Timeout | null = null;
@@ -144,7 +137,6 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
     };
   }, [navigation]);
 
-  
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (qrModalVisible && selectedItem) {
@@ -159,7 +151,7 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
             showToast('¡Validado correctamente!', 'success');
           }
         } catch (error) {
-          
+
         }
       }, 3000);
     }
@@ -245,8 +237,8 @@ export const AdminRecyclesScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
         <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => {
               if (navigation.canGoBack()) {
                 navigation.goBack();
@@ -534,7 +526,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 10 },
   viewDetailsText: { fontSize: 13, fontWeight: '800', color: colors.accent, textAlign: 'center' },
 
-  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: colors.background,
@@ -576,7 +567,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   noEvidenceBox: { padding: 24, backgroundColor: colors.surface, borderRadius: 16, alignItems: 'center', gap: 10 },
   noEvidenceText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500', textAlign: 'center' },
 
-  
   modalActionsBar: {
     flexDirection: 'row',
     gap: 12,
@@ -606,7 +596,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   modalBtnApprove: { backgroundColor: colors.primary },
   modalBtnApproveText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 
-  
   qrOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   qrCard: {
     width: '100%',

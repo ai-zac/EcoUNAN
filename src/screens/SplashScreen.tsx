@@ -4,7 +4,8 @@ import { tokenStorage } from '../utils/tokenStorage';
 import SplashEcoUNAN from '../components/SplashEcoUNAN';
 
 export const SplashScreen = ({ navigation }: any) => {
-  // Inicia la verificación de sesión de inmediato desde la inicialización del ref
+  const hasNavigatedRef = useRef(false);
+
   const authCheckRef = useRef<Promise<'AdminDashboard' | 'MainTabs' | 'Onboarding'>>(
     (async () => {
       try {
@@ -23,18 +24,36 @@ export const SplashScreen = ({ navigation }: any) => {
     })()
   );
 
+  const navigateToTarget = async () => {
+    if (hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    try {
+      const targetRoute = (await Promise.race([
+        authCheckRef.current,
+        new Promise<'Onboarding'>((resolve) => setTimeout(() => resolve('Onboarding'), 1500)),
+      ])) ?? 'Onboarding';
+      console.log('[SplashScreen] Navegando con éxito a:', targetRoute);
+      navigation.replace(targetRoute);
+    } catch (error) {
+      console.error('[SplashScreen] Error durante navegación post-splash:', error);
+      navigation.replace('Onboarding');
+    }
+  };
+
+  useEffect(() => {
+    // Temporizador de rescate: si la animación nativa se traba o no llama el callback en 3800ms, avanza
+    const fallbackTimer = setTimeout(() => {
+      navigateToTarget();
+    }, 3800);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
   return (
     <SplashEcoUNAN
-      onAnimationComplete={async () => {
-        try {
-          const targetRoute = (await authCheckRef.current) ?? 'Onboarding';
-          console.log('[SplashScreen] Navegando con éxito a:', targetRoute);
-          navigation.replace(targetRoute);
-        } catch (error) {
-          console.error('[SplashScreen] Error durante navegación post-splash:', error);
-          navigation.replace('Onboarding');
-        }
-      }}
+      onAnimationComplete={navigateToTarget}
     />
   );
 };
