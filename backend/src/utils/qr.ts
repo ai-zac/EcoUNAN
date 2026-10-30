@@ -3,10 +3,12 @@ import crypto from 'crypto';
 
 
 const secret = () => {
-  const s = process.env.QR_SECRET;
+  const s = process.env.QR_SECRET || process.env.JWT_SECRET;
   if (!s) {
-    console.error('[qr] WARNING: QR_SECRET not set, falling back to JWT_SECRET');
-    return process.env.JWT_SECRET || 'ecounan-dev-qr-secret';
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('QR_SECRET or JWT_SECRET is required in production');
+    }
+    return 'ecounan-dev-qr-secret';
   }
   return s;
 };
@@ -16,6 +18,7 @@ function hmac(msg: string): string {
 }
 
 function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
   const ba = Buffer.from(a);
   const bb = Buffer.from(b);
   if (ba.length !== bb.length) return false;
@@ -47,7 +50,7 @@ export function verifyApprovalQr(raw: string): VerifiedApprovalQr | null {
     return null;
   }
   if (!parsed || parsed.type !== 'eco-approve') return null;
-  if (typeof parsed.recycleId !== 'string' || typeof parsed.ts !== 'number') return null;
+  if (typeof parsed.recycleId !== 'string' || typeof parsed.ts !== 'number' || typeof parsed.sig !== 'string') return null;
 
   
   const TTL = 10 * 60 * 1000;

@@ -1,6 +1,8 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, TextInput, RefreshControl } from 'react-native';
+import {
+  View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
+  FlatList, ActivityIndicator, Alert, TextInput, RefreshControl,
+} from 'react-native';
 import {
   ArrowLeft, User, Shield, ShieldCheck, HardHat, Search,
   Power, UserCog, UserPlus, X,
@@ -113,10 +115,15 @@ export const AdminUsersScreen = ({ navigation }: any) => {
           text: action.charAt(0).toUpperCase() + action.slice(1),
           style: item.isActive ? 'destructive' : 'default',
           onPress: async () => {
+            // Actualización optimista inmediata en la UI
+            setUsers(prev => prev.map(u => u._id === item._id ? { ...u, isActive: !item.isActive } : u));
             try {
               await AdminService.toggleUserStatus(item._id);
-              fetchUsers();
+              const data = await AdminService.searchUsers(search, statusFilter);
+              setUsers(data);
+              Alert.alert('Éxito', `Cuenta de ${item.name} ${action}da correctamente.`);
             } catch (error: any) {
+              fetchUsers(search, statusFilter, true);
               Alert.alert('Error', error?.response?.data?.error || 'No se pudo cambiar el estado');
             }
           },
@@ -132,10 +139,17 @@ export const AdminUsersScreen = ({ navigation }: any) => {
       options.push({
         text: opt.label,
         onPress: async () => {
+          // 1. Actualización optimista inmediata (0ms de retraso visual)
+          setUsers(prev => prev.map(u => u._id === item._id ? { ...u, role: opt.value } : u));
           try {
             await AdminService.updateUserRole(item._id, opt.value);
-            fetchUsers();
+            // 2. Refresco en segundo plano con la data confirmada del servidor
+            const data = await AdminService.searchUsers(search, statusFilter);
+            setUsers(data);
+            Alert.alert('Rol actualizado', `Se asignó el rol "${opt.label.split(' ')[0]}" a ${item.name}.`);
           } catch (error: any) {
+            // Revertir si hubo error
+            fetchUsers(search, statusFilter, true);
             Alert.alert('Error', error?.response?.data?.error || 'No se pudo cambiar el rol');
           }
         },
@@ -221,7 +235,7 @@ export const AdminUsersScreen = ({ navigation }: any) => {
         </View>
       </View>
 
-      {/* Filtros de estado */}
+      
       <View style={styles.filtersRow}>
         {filters.map(f => (
           <TouchableOpacity
@@ -241,6 +255,7 @@ export const AdminUsersScreen = ({ navigation }: any) => {
       ) : (
         <FlatList
           data={users}
+          extraData={users}
           keyExtractor={item => item._id}
           renderItem={renderUser}
           contentContainerStyle={styles.listContainer}

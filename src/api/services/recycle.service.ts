@@ -39,9 +39,17 @@ export const RecycleService = {
       }
 
       if (photoUri) {
-        const filename = photoUri.split('/').pop() || 'photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        let filename = photoUri.split('/').pop() || 'photo.jpg';
+        filename = filename.split('?')[0];
+
+        // Asegurar extensión estándar para evitar rechazo en multer
+        if (!/\.(jpe?g|png|webp|heic|heif)$/i.test(filename)) {
+          filename = `${filename}.jpg`;
+        }
+
+        const extMatch = /\.(\w+)$/.exec(filename);
+        const ext = extMatch ? extMatch[1].toLowerCase() : 'jpeg';
+        const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
 
         formData.append('proofImage', {
           uri: photoUri,
@@ -50,7 +58,16 @@ export const RecycleService = {
         } as any);
       }
 
-      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/register', formData);
+      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>(
+        '/recycles/register',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          transformRequest: (data) => data,
+        }
+      );
       return response.data.data;
     } catch (error) {
       console.error('Error registering recycle:', error);
@@ -70,8 +87,11 @@ export const RecycleService = {
 
   confirmPresential: async (qrData: string): Promise<RecycleRecord> => {
     try {
-      const response = await apiClient.post<{success: boolean, data: RecycleRecord}>('/recycles/confirm-presential', { qrData });
-      return response.data.data;
+      const response = await apiClient.post<{ success: boolean; data?: RecycleRecord; recycle?: RecycleRecord }>(
+        '/recycles/confirm-presential',
+        { qrData }
+      );
+      return (response.data.data || (response.data as any).recycle) as RecycleRecord;
     } catch (error) {
       console.error('Error confirming presential recycle:', error);
       throw error;

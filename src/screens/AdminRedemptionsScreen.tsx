@@ -1,6 +1,8 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, RefreshControl } from 'react-native';
+import {
+  View, Text, StyleSheet, SafeAreaView, ScrollView,
+  TouchableOpacity, ActivityIndicator, Alert, FlatList, RefreshControl,
+} from 'react-native';
 import { ArrowLeft, Gift, ShoppingBag, CheckCircle, XCircle } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -65,6 +65,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   const colors = useThemeColors();
   const styles = useStyles(colors);
   const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const handleChangeText = (rawText: string) => {
     const cleanText = rawText.replace(/\s/g, '').toLowerCase();
@@ -151,15 +152,18 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   const handleSelectDomain = (domain: string) => {
     if (!value) {
       onChangeText(domain);
-      return;
-    }
-    const atIndex = value.indexOf('@');
-    if (atIndex === -1) {
-      onChangeText(`${value.trim()}${domain}`);
     } else {
-      const username = value.substring(0, atIndex);
-      onChangeText(`${username}${domain}`);
+      const atIndex = value.indexOf('@');
+      if (atIndex === -1) {
+        onChangeText(`${value.trim()}${domain}`);
+      } else {
+        const username = value.substring(0, atIndex);
+        onChangeText(`${username}${domain}`);
+      }
     }
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
   };
 
   const handleApplyCorrection = () => {
@@ -241,6 +245,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
           style={styles.icon}
         />
         <TextInput
+          ref={inputRef}
           style={[styles.input, style]}
           value={value}
           onChangeText={handleChangeText}

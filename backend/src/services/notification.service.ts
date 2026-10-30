@@ -12,6 +12,7 @@ async function sendExpoPush(to: string, title: string, body: string): Promise<vo
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ to, sound: 'default', title, body }),
+      signal: AbortSignal.timeout(8000),
     });
     const receipt = await response.json();
     
@@ -99,7 +100,7 @@ export async function notifyAllUsers(
     if (excludeUserId) {
       filter._id = { $ne: new Types.ObjectId(excludeUserId) };
     }
-    const users = await User.find(filter).select('_id expoPushToken');
+    const users = await User.find(filter).select('_id expoPushToken').lean();
     if (!users.length) return;
 
     // Guardar un solo documento global de broadcast con user: null
@@ -136,6 +137,7 @@ export async function notifyAllUsers(
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(chunk),
+            signal: AbortSignal.timeout(8000),
           });
         } catch (err) {
           console.error('[notifyAllUsers] error enviando lote push:', err);

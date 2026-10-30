@@ -82,7 +82,8 @@ public async getRanking(req: Request, res: Response): Promise<void> {
       const ranking = await User.find({ role: 'user', isActive: true })
         .select('name ecoPoints lifetimePoints faculty profilePicture')
         .sort({ ecoPoints: -1 })
-        .limit(50);
+        .limit(50)
+        .lean();
 
       res.status(200).json({ success: true, data: ranking });
     } catch (error: any) {
