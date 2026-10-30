@@ -1,10 +1,10 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Animated, Alert, ActivityIndicator } from 'react-native';
 import { ArrowLeft, MailCheck } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { Input } from '../components/Input';
+import { EmailInput, isValidEmail } from '../components/EmailInput';
 import { Button } from '../components/Button';
 import { AuthService } from '../api/services/auth.service';
 
@@ -40,13 +40,18 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
   }, []);
 
   const handleRequestCode = async () => {
-    if (!email.trim()) {
-      Alert.alert('Campo requerido', 'Ingresa tu correo institucional.');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      Alert.alert('Campo requerido', 'Ingresa tu correo electrónico.');
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      Alert.alert('Correo inválido', 'Por favor ingresa un correo válido (ej: usuario@unan.edu.ni o usuario@gmail.com)');
       return;
     }
     setLoading(true);
     try {
-      await AuthService.forgotPassword(email.trim().toLowerCase());
+      await AuthService.forgotPassword(cleanEmail);
       Alert.alert(
         'Revisa tu correo',
         'Si el correo está registrado recibirás un código de recuperación válido por 15 minutos.'
@@ -108,13 +113,10 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
             </Animated.View>
 
             <Animated.View style={[styles.form, { opacity: fadeAnim2, transform: [{ translateY: slideAnim2 }] }]}>
-              <Input 
-                label="Correo institucional" 
-                placeholder="usuario@unan.edu.ni" 
-                keyboardType="email-address"
-                autoCapitalize="none"
+              <EmailInput 
                 value={email}
                 onChangeText={setEmail}
+                isRequired
               />
               
               <Button 
