@@ -5,7 +5,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
  * (backend/src/models/recycle.model.ts). Los datos de facultad/carrera NO
  * viven aquí: se obtienen del usuario vía $lookup a la colección 'users'.
  */
-export type MaterialType = 'pet' | 'aluminio' | 'papel' | 'carton' | 'plastico';
+export type MaterialType = string;
 export type RecycleStatus = 'pending' | 'validated' | 'rejected';
 
 export interface IRecycle extends Document {
@@ -25,7 +25,7 @@ const recycleSchema = new Schema<IRecycle>(
     user: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
     items: [
       {
-        materialType: { type: String, required: true, enum: ['pet', 'aluminio', 'papel', 'carton', 'plastico'] },
+        materialType: { type: String, required: true },
         weight: { type: Number, required: true },
         pointsEarned: { type: Number, default: 0 },
       },

@@ -270,6 +270,7 @@ export const buildRecyclePdf = (params: {
       drawFooters(doc);
       doc.end();
     } catch (err) {
+      doc.destroy();
       reject(err);
     }
   });

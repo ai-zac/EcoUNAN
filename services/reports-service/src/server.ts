@@ -37,6 +37,27 @@ app.use((_req, res) => {
 
 app.use(errorHandler);
 
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[UNHANDLED_REJECTION]', reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error('[UNCAUGHT_EXCEPTION]', error);
+  process.exit(1);
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('[reports-service] MongoDB error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('[reports-service] MongoDB desconectado');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('[reports-service] MongoDB reconectado');
+});
+
 const start = async () => {
   try {
     const conn = await mongoose.connect(env.MONGO_URI, {
@@ -46,9 +67,36 @@ const start = async () => {
       serverApi: { version: '1', strict: true, deprecationErrors: true },
     });
     console.log(`[reports-service] MongoDB conectado: ${conn.connection.host}`);
-    app.listen(env.PORT, '0.0.0.0', () => {
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`[reports-service] Escuchando en el puerto ${env.PORT}`);
     });
+
+    server.headersTimeout = 65000;
+    server.requestTimeout = 60000;
+    server.keepAliveTimeout = 61000;
+
+    const gracefulShutdown = (signal: string) => {
+      console.log(`[reports-service] [${signal}] Cerrando servidor...`);
+      const forceExit = setTimeout(() => {
+        console.error('[reports-service] Cierre forzado.');
+        process.exit(1);
+      }, 10000);
+      forceExit.unref();
+
+      server.close(async () => {
+        try {
+          await mongoose.connection.close(false);
+          clearTimeout(forceExit);
+          process.exit(0);
+        } catch (err) {
+          console.error('[reports-service] Error cerrando conexion:', err);
+          process.exit(1);
+        }
+      });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (err) {
     console.error('[reports-service] Error conectando a MongoDB:', (err as Error).message);
     process.exit(1);

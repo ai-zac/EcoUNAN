@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { API_BASE_URL } from '../api/apiClient';
 import { tokenStorage } from './tokenStorage';
@@ -137,19 +137,30 @@ export const downloadAndShareReport = async ({
     return;
   }
 
-  const destination = new File(Paths.document, filename);
-  const downloadedFile = await File.downloadFileAsync(url, destination, {
+  const targetDir = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+  const fileUri = `${targetDir}${filename}`;
+
+  const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
     headers: { Authorization: `Bearer ${token}` },
-    idempotent: true,
   });
+
+  if (downloadResult.status !== 200) {
+    let errorDetail = `Código ${downloadResult.status}`;
+    try {
+      const errorBody = await FileSystem.readAsStringAsync(downloadResult.uri);
+      const parsed = JSON.parse(errorBody);
+      if (parsed.error) errorDetail = parsed.error;
+    } catch {}
+    throw new Error(`No se pudo generar el reporte: ${errorDetail}`);
+  }
 
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) {
-    Alert.alert('Archivo guardado', `El reporte se guardó en: ${downloadedFile.uri}`);
+    Alert.alert('Reporte generado', `El archivo se guardó correctamente en: ${downloadResult.uri}`);
     return;
   }
 
-  await Sharing.shareAsync(downloadedFile.uri, {
+  await Sharing.shareAsync(downloadResult.uri, {
     mimeType,
     dialogTitle,
     UTI: format === 'excel' ? 'org.openxmlformats.spreadsheetml.sheet' : 'com.adobe.pdf',
