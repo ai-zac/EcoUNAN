@@ -113,6 +113,11 @@ export const RegisterScreen = ({ navigation }: any) => {
       return;
     }
 
+    if (cleanStudentId.length !== 8) {
+      Alert.alert('Carnet incompleto', 'El carnet o código estudiantil debe contener exactamente 8 dígitos numéricos.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
@@ -244,8 +249,12 @@ export const RegisterScreen = ({ navigation }: any) => {
                   label="Carnet / Código estudiantil"
                   placeholder="20045231"
                   keyboardType="numeric"
+                  maxLength={8}
                   value={studentId}
-                  onChangeText={setStudentId}
+                  onChangeText={(text) => {
+                    const clean = text.replace(/\D/g, '').slice(0, 8);
+                    setStudentId(clean);
+                  }}
                   isRequired
                 />
 
@@ -351,11 +360,11 @@ export const RegisterScreen = ({ navigation }: any) => {
                 <View style={styles.iconCircle}>
                   <MailCheck size={32} color="#16A34A" />
                 </View>
-                <Text style={styles.title}>Verifica tu correo</Text>
+                <Text style={[styles.title, styles.centerTitle]}>Verifica tu correo</Text>
                 <Text style={styles.verifySubtitle}>
                   Enviamos un código de 6 dígitos a:
                 </Text>
-                <View style={styles.emailBadgeRow}>
+                <View style={styles.emailBadgeContainer}>
                   <Text style={styles.emailBadgeText} numberOfLines={1}>
                     {verificationEmail}
                   </Text>
@@ -366,7 +375,7 @@ export const RegisterScreen = ({ navigation }: any) => {
                       setIsChangingEmail(!isChangingEmail);
                     }}
                   >
-                    <Edit3 size={15} color={colors.primary} />
+                    <Edit3 size={14} color={colors.primary} />
                     <Text style={styles.editEmailText}>Cambiar</Text>
                   </TouchableOpacity>
                 </View>
@@ -544,30 +553,37 @@ const useStyles = (colors: typeof theme.colors) =>
       marginTop: 8,
       textAlign: 'center',
     },
-    emailBadgeRow: {
-      flexDirection: 'row',
+    centerTitle: {
+      textAlign: 'center',
+      alignSelf: 'center',
+    },
+    emailBadgeContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
-      marginTop: 6,
-      backgroundColor: colors.surface,
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderRadius: 20,
+      marginTop: 8,
       alignSelf: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     emailBadgeText: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: 'bold',
       color: colors.text,
-      maxWidth: 240,
+      textAlign: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxWidth: 280,
     },
     editEmailBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 3,
+      justifyContent: 'center',
+      gap: 4,
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
     },
     editEmailText: {
       fontSize: 13,

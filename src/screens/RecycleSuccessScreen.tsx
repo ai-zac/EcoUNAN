@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import { Check, GlassWater } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -85,11 +84,11 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
                   </View>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>
-                      {item.materialType.charAt(0).toUpperCase() + item.materialType.slice(1)}
+                      {((item.materialType || item.material || 'Material') as string).charAt(0).toUpperCase() + ((item.materialType || item.material || 'Material') as string).slice(1)}
                     </Text>
-                    <Text style={styles.itemQuantity}>{item.weight} kg entregados</Text>
+                    <Text style={styles.itemQuantity}>{item.weight || 0} kg entregados</Text>
                   </View>
-                  <Text style={styles.itemPoints}>+{item.pointsEarned} pts</Text>
+                  <Text style={styles.itemPoints}>+{item.pointsEarned || 0} pts</Text>
                 </View>
                 {index < items.length - 1 && <View style={styles.divider} />}
               </View>
@@ -98,8 +97,8 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
             {items.length > 0 && <View style={styles.divider} />}
 
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Puntos acumulados:</Text>
-              <Text style={styles.totalPoints}>+{totalPoints} puntos</Text>
+              <Text style={styles.totalLabel}>EcoPoints acumulados:</Text>
+              <Text style={styles.totalPoints}>+{totalPoints} EcoPoints</Text>
             </View>
 
           </View>
@@ -111,7 +110,7 @@ export const RecycleSuccessScreen = ({ navigation, route }: any) => {
             style={styles.actionButton} 
             onPress={() => navigation.navigate('MainTabs', { screen: 'Puntos' })}
           >
-            <Text style={styles.actionButtonText}>Ver mis puntos</Text>
+            <Text style={styles.actionButtonText}>Ver mis EcoPoints</Text>
           </TouchableOpacity>
         </Animated.View>
 
