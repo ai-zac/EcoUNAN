@@ -1,24 +1,33 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Animated } from 'react-native';
-import { 
-  ArrowLeft, 
-  Gift, 
-  Coffee, 
-  Shirt, 
-  BookOpen, 
-  Utensils, 
-  ShoppingBag, 
-  Award, 
-  Trophy, 
-  Medal, 
-  Ticket, 
-  Sparkles, 
-  Droplet, 
-  Star, 
-  Zap, 
-  Smartphone, 
-  Package 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
+import {
+  ArrowLeft,
+  Gift,
+  Coffee,
+  Shirt,
+  BookOpen,
+  Utensils,
+  ShoppingBag,
+  Award,
+  Trophy,
+  Medal,
+  Ticket,
+  Sparkles,
+  Droplet,
+  Star,
+  Zap,
+  Smartphone,
+  Package
 } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -32,13 +41,12 @@ import { User, Reward } from '../types';
 export const ConfirmRewardScreen = ({ route, navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const { reward } = route.params as { reward: Reward };
+  const reward = route.params?.reward as Reward | undefined;
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Animaciones de entrada
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
@@ -64,7 +72,6 @@ export const ConfirmRewardScreen = ({ route, navigation }: any) => {
   useEffect(() => {
     refreshLiveUser();
 
-    // Polling en tiempo real: si un admin aprueba un reciclaje mientras está en esta ventana, se actualiza al instante
     const interval = setInterval(() => {
       refreshLiveUser();
     }, 2500);
@@ -91,7 +98,31 @@ export const ConfirmRewardScreen = ({ route, navigation }: any) => {
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [reward]);
+
+  if (!reward) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={22} color={colors.text} strokeWidth={2.5} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Recompensa no encontrada</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
+            No se encontró la información de la recompensa seleccionada.
+          </Text>
+          <TouchableOpacity
+            style={[styles.confirmButton, { paddingHorizontal: 24 }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.confirmButtonText}>Regresar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const currentPoints = currentUser?.ecoPoints || 0;
   const remainingPoints = currentPoints - reward.pointsCost;
@@ -123,7 +154,7 @@ export const ConfirmRewardScreen = ({ route, navigation }: any) => {
   const handleRedeem = async () => {
     setLoading(true);
     try {
-      // 1. Verificar puntos en tiempo real directamente con el servidor antes de proceder
+
       const liveUser = await refreshLiveUser();
       const currentLivePoints = liveUser?.ecoPoints ?? currentUser?.ecoPoints ?? 0;
 
@@ -167,7 +198,7 @@ export const ConfirmRewardScreen = ({ route, navigation }: any) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.container}>
-        {/* Cabecera con botón volver y título alineado */}
+
         <Animated.View
           style={[
             styles.header,
@@ -370,5 +401,5 @@ const useStyles = (colors: typeof theme.colors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    cancelButtonText: { fontSize: 15, fontWeight: '700', color: colors.textSecondary },
+    cancelButtonText: { fontSize: 15, fontWeight: '700', color: colors.text },
   });

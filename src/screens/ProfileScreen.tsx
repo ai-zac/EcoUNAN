@@ -56,12 +56,10 @@ const LOGOUT_ITEM = {
   bg: '#FEE2E2',
 };
 
-// Caché en memoria para carga instantánea en Frame 0
 let memoryProfileUser: User | null = null;
 let memoryRecycleCount: number = 0;
 let memoryTotalWeight: number = 0;
 
-// Hidratar en segundo plano al montar el módulo
 AsyncStorage.multiGet(['@user_data', '@ecounan_profile_stats'])
   .then((pairs) => {
     pairs.forEach(([key, val]) => {
@@ -105,7 +103,7 @@ const AnimatedMenuItem: React.FC<AnimatedMenuItemProps> = React.memo(({
   colors,
   styles,
 }) => {
-  // Animación en cascada idéntica: baja desde -18 a 0 con resorte suave y micro-pop del ícono
+
   const slideAnim = useRef(new Animated.Value(-18)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.96)).current;
@@ -200,11 +198,10 @@ export const ProfileScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
   const hasOpenedChildScreenRef = useRef(false);
 
-  // Animaciones de cabecera y estadísticas
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
@@ -214,7 +211,6 @@ export const ProfileScreen = ({ navigation }: any) => {
   const statsSlide = useRef(new Animated.Value(16)).current;
   const statsScale = useRef(new Animated.Value(0.96)).current;
 
-  // Estado con renderizado instantáneo Frame 0 desde caché
   const [user, setUser] = useState<User | null>(memoryProfileUser);
   const [recycleCount, setRecycleCount] = useState<number>(memoryRecycleCount);
   const [totalWeight, setTotalWeight] = useState<number>(memoryTotalWeight);
@@ -233,7 +229,7 @@ export const ProfileScreen = ({ navigation }: any) => {
     statsScale.setValue(0.96);
 
     Animated.stagger(30, [
-      // 1. Fila superior y cabecera
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 200, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
@@ -241,7 +237,6 @@ export const ProfileScreen = ({ navigation }: any) => {
         Animated.spring(avatarScale, { toValue: 1, tension: 85, friction: 6, useNativeDriver: true }),
       ]),
 
-      // 2. Tarjetas de estadísticas
       Animated.parallel([
         Animated.timing(statsFade, { toValue: 1, duration: 200, useNativeDriver: true }),
         Animated.spring(statsSlide, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
@@ -255,7 +250,6 @@ export const ProfileScreen = ({ navigation }: any) => {
     setRefreshKey((k) => k + 1);
   };
 
-  // Hidratación de AsyncStorage en caso de memoria fría
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -291,13 +285,11 @@ export const ProfileScreen = ({ navigation }: any) => {
     });
   };
 
-  // Disparo instantáneo al enfocar la pantalla y reseteo de scroll al inicio
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener('focus', () => {
       refreshUnreadCount();
       if (hasOpenedChildScreenRef.current) {
-        // Regresando de una pantalla hija (Configuración, Editar perfil, etc.)
-        // La pantalla ya está renderizada: no reiniciamos animación ni scroll para evitar retrasos
+
         hasOpenedChildScreenRef.current = false;
         loadUserData();
         return;
@@ -309,7 +301,7 @@ export const ProfileScreen = ({ navigation }: any) => {
     });
 
     const unsubscribeBlur = navigation.addListener('blur', () => {
-      // Solo resetear el scroll al inicio si el usuario sale a otra pestaña
+
       if (!hasOpenedChildScreenRef.current) {
         resetScrollToTop(false);
       }
@@ -325,7 +317,6 @@ export const ProfileScreen = ({ navigation }: any) => {
     };
   }, [navigation]);
 
-  // Polling automático en tiempo real en segundo plano mientras ProfileScreen esté activa
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
 
@@ -335,7 +326,7 @@ export const ProfileScreen = ({ navigation }: any) => {
         try {
           await Promise.all([loadUserData(), refreshUnreadCount()]);
         } catch (e) {
-          // Polling silencioso
+
         }
       }, 3500);
     };
@@ -421,7 +412,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   const handleLogout = async () => {
     await tokenStorage.removeToken();
     await AsyncStorage.removeItem('@user_data');
-    navigation.replace('Login');
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   const handleImageResult = async (result: ImagePicker.ImagePickerResult) => {
@@ -499,7 +490,7 @@ export const ProfileScreen = ({ navigation }: any) => {
           />
         }
       >
-        {/* Fila superior con botón atrás alineado */}
+
         <Animated.View
           style={[
             styles.topRow,
@@ -528,7 +519,6 @@ export const ProfileScreen = ({ navigation }: any) => {
           <Text style={styles.screenTitle}>Mi Perfil</Text>
         </Animated.View>
 
-        {/* Cabecera del Usuario con avatar y datos */}
         <Animated.View
           style={[
             styles.header,
@@ -569,7 +559,6 @@ export const ProfileScreen = ({ navigation }: any) => {
           )}
         </Animated.View>
 
-        {/* Fila de Estadísticas */}
         <Animated.View
           style={[
             styles.statsContainer,
@@ -581,7 +570,7 @@ export const ProfileScreen = ({ navigation }: any) => {
         >
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{user?.ecoPoints || 0}</Text>
-            <Text style={styles.statLabel}>Puntos Disp.</Text>
+            <Text style={styles.statLabel}>EcoPoints</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{recycleCount}</Text>
@@ -611,7 +600,6 @@ export const ProfileScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Contenedor de Opciones del Menú con animación en cascada */}
         <View style={styles.menuContainer}>
           {MENU_ITEMS.map((item, index) => (
             <AnimatedMenuItem
@@ -655,7 +643,6 @@ export const ProfileScreen = ({ navigation }: any) => {
             />
           ))}
 
-          {/* Opción de Cerrar Sesión con cascada */}
           <AnimatedMenuItem
             item={LOGOUT_ITEM}
             index={MENU_ITEMS.length}
