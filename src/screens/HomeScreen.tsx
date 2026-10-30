@@ -20,11 +20,10 @@ import { API_BASE_URL, assetUrl } from '../api/apiClient';
 export const HomeScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
   const unreadCount = useUnreadCount();
 
-  // Valores animados para la entrada sutil de componentes
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const avatarScale = useRef(new Animated.Value(0.7)).current;
@@ -61,12 +60,8 @@ export const HomeScreen = ({ navigation }: any) => {
   const targetPoints = rankData.nextRank ? rankData.nextRank.minPoints : rankData.currentRank.minPoints;
   const progressPercent = Math.min(100, Math.max(0, Math.round(rankData.progressPercentage || 0)));
 
-  /**
-   * Animación sutil y fluida que hace aparecer los elementos propios de la pantalla
-   * con una cascada elegante y micro-rebote en los íconos para atraer la mirada.
-   */
   const playEntranceAnimation = () => {
-    // 1. Reiniciar valores a su posición inicial
+
     headerFade.setValue(0);
     headerSlide.setValue(14);
     avatarScale.setValue(0.7);
@@ -90,16 +85,14 @@ export const HomeScreen = ({ navigation }: any) => {
     rewardSlide.setValue(18);
     rewardIconScale.setValue(0.4);
 
-    // 2. Orquestar la cascada en cadena
     Animated.stagger(75, [
-      // Cabecera y Avatar
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(avatarScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       ]),
 
-      // Tarjeta de Puntos y Badge de Rango
       Animated.parallel([
         Animated.timing(pointsFade, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(pointsSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -119,7 +112,6 @@ export const HomeScreen = ({ navigation }: any) => {
         ]),
       ]),
 
-      // Fila de Estadísticas y brote sutil de sus 3 íconos
       Animated.parallel([
         Animated.timing(statsFade, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(statsSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -130,13 +122,11 @@ export const HomeScreen = ({ navigation }: any) => {
         ]),
       ]),
 
-      // Botones de acción principales
       Animated.parallel([
         Animated.timing(actionsFade, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(actionsSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
 
-      // Tarjeta de Próxima Recompensa con su ícono
       Animated.parallel([
         Animated.timing(rewardFade, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(rewardSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -156,7 +146,7 @@ export const HomeScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    // Escuchar el evento 'focus' para volver al inicio y reanimar siempre que se acceda o regrese a HomeScreen
+
     const unsubscribeFocus = navigation.addListener('focus', () => {
       resetScrollToTop(false);
       refreshUnreadCount();
@@ -168,29 +158,31 @@ export const HomeScreen = ({ navigation }: any) => {
       resetScrollToTop(false);
     });
 
-    // Ejecutar al montar
     playEntranceAnimation();
 
     return () => {
       unsubscribeFocus();
       unsubscribeBlur();
     };
-  }, [navigation, progressPercent]);
+  }, [navigation]);
 
-  // Polling automático en tiempo real en segundo plano mientras HomeScreen esté activa
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
+    let consecutiveErrors = 0;
 
     const startPolling = () => {
       if (pollingInterval) clearInterval(pollingInterval);
+      consecutiveErrors = 0;
       pollingInterval = setInterval(async () => {
+        if (consecutiveErrors >= 2) return;
         try {
           await loadData();
           refreshUnreadCount();
+          consecutiveErrors = 0;
         } catch (e) {
-          // Polling silencioso
+          consecutiveErrors += 1;
         }
-      }, 3500);
+      }, 8000);
     };
 
     const stopPolling = () => {
@@ -212,7 +204,6 @@ export const HomeScreen = ({ navigation }: any) => {
     };
   }, [navigation]);
 
-  // Animar suavemente el llenado de la barra cuando los puntos o la meta se actualicen
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progressPercent,
@@ -250,12 +241,10 @@ export const HomeScreen = ({ navigation }: any) => {
             myRewards.map((r: any) => String(r.reward?._id || r.reward || r.rewardId))
           );
 
-          // Si la meta fijada ya fue canjeada, limpiarla automáticamente
           if (savedTarget && redeemedIds.has(String(savedTarget._id))) {
             await targetRewardService.clearTargetReward();
           }
 
-          // 1. Si el usuario fijó una meta y aún no la canjea, mostrarla
           const activePinned = savedTarget && !redeemedIds.has(String(savedTarget._id))
             ? rewards.find((r) => r._id === savedTarget._id) || savedTarget
             : null;
@@ -263,7 +252,7 @@ export const HomeScreen = ({ navigation }: any) => {
           if (activePinned) {
             setNextReward(activePinned as Reward);
           } else {
-            // 2. Si no tiene meta fijada, buscar la próxima recompensa que aún NO ha canjeado
+
             const unredeemed = rewards.filter((r) => !redeemedIds.has(String(r._id)));
             const sortedUnredeemed = [...unredeemed].sort((a, b) => a.pointsCost - b.pointsCost);
 
@@ -272,7 +261,7 @@ export const HomeScreen = ({ navigation }: any) => {
               const upcoming = sortedUnredeemed.find((r) => r.pointsCost > livePoints);
               setNextReward(upcoming || sortedUnredeemed[0]);
             } else {
-              // Si ya canjeó todas las recompensas del catálogo, mostrar la de mayor valor
+
               const sortedAll = [...rewards].sort((a, b) => b.pointsCost - a.pointsCost);
               setNextReward(sortedAll[0] || null);
             }
@@ -314,21 +303,20 @@ export const HomeScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
+      <ScrollView
         ref={scrollRef}
-        style={styles.container} 
+        style={styles.container}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             colors={[colors.primary, colors.accent]}
             tintColor={colors.primary}
           />
         }
       >
-        
-        {/* Header */}
+
         <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
           <View style={{ flex: 1, marginRight: 12 }}>
             <Text style={styles.greeting} numberOfLines={1}>Hola, {getFirstName(user?.name || 'Estudiante')}</Text>
@@ -373,14 +361,13 @@ export const HomeScreen = ({ navigation }: any) => {
           </View>
         </Animated.View>
 
-        {/* Points Card */}
         <Animated.View style={[{ opacity: pointsFade, transform: [{ translateY: pointsSlide }, { scale: pointsScale }] }]}>
           <TouchableOpacity style={styles.pointsCard} activeOpacity={0.9} onPress={() => navigation.navigate('Puntos')}>
             <View style={styles.pointsHeader}>
-              <Text style={styles.pointsTitle}>MIS PUNTOS</Text>
+              <Text style={styles.pointsTitle}>MIS ECOPOINTS</Text>
               <Animated.View style={{ transform: [{ scale: badgeScale }] }}>
-                <TouchableOpacity 
-                  style={[styles.premiumBadge, { backgroundColor: rankData.currentRank.color + '20' }]} 
+                <TouchableOpacity
+                  style={[styles.premiumBadge, { backgroundColor: rankData.currentRank.color + '20' }]}
                   onPress={() => navigation.navigate('LeaguePath')}
                   activeOpacity={0.7}
                 >
@@ -391,15 +378,15 @@ export const HomeScreen = ({ navigation }: any) => {
               </Animated.View>
             </View>
             <Text style={styles.pointsValue}>{currentPoints}</Text>
-            <Text style={styles.pointsSubtitle}>puntos</Text>
-            
+            <Text style={styles.pointsSubtitle}>EcoPoints</Text>
+
             <View style={styles.progressContainer}>
               <View style={styles.progressBarBg}>
                 <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
               </View>
               <View style={styles.progressLabels}>
                 <Text style={styles.progressLabel}>{progressPercent}% completado</Text>
-                <Text style={styles.progressLabel}>Meta: {targetPoints} puntos</Text>
+                <Text style={styles.progressLabel}>Meta: {targetPoints} EcoPoints</Text>
               </View>
             </View>
 
@@ -408,7 +395,6 @@ export const HomeScreen = ({ navigation }: any) => {
             </Text>
           </TouchableOpacity>
 
-          {/* Stats Row */}
           <Animated.View style={[styles.statsRow, { opacity: statsFade, transform: [{ translateY: statsSlide }] }]}>
             <TouchableOpacity style={styles.statCard} activeOpacity={0.8}>
               <Animated.View style={[styles.statIcon, { backgroundColor: '#F0FDF4', transform: [{ scale: stat1Scale }] }]}>
@@ -438,19 +424,18 @@ export const HomeScreen = ({ navigation }: any) => {
           </Animated.View>
         </Animated.View>
 
-        {/* Action Buttons & Next Reward */}
         <Animated.View style={[{ opacity: actionsFade, transform: [{ translateY: actionsSlide }] }]}>
-          <Button 
-            title="Registrar reciclaje" 
+          <Button
+            title="Registrar reciclaje"
             icon={<ScanLine size={20} color={theme.colors.white} />}
-            onPress={() => navigation.navigate('Reciclar')} 
+            onPress={() => navigation.navigate('Reciclar')}
             style={styles.actionButton}
           />
-          
-          <Button 
-            title="Ver Ranking EcoUNAN" 
+
+          <Button
+            title="Ver Ranking EcoUNAN"
             icon={<Medal size={20} color={colors.primary} />}
-            onPress={() => navigation.navigate('Ranking')} 
+            onPress={() => navigation.navigate('Ranking')}
             style={[styles.actionButton, { backgroundColor: colors.surface }]}
             textStyle={{ color: colors.text }}
           />
@@ -466,12 +451,14 @@ export const HomeScreen = ({ navigation }: any) => {
                   <Animated.View style={[styles.rewardIconBg, { transform: [{ scale: rewardIconScale }] }]}>
                     <Gift size={24} color={nextReward.iconColor || '#F59E0B'} />
                   </Animated.View>
-                  <View>
-                    <Text style={styles.rewardTitle}>{nextReward.title}</Text>
-                    <Text style={styles.rewardSubtitle}>
+                  <View style={styles.rewardTextContainer}>
+                    <Text style={styles.rewardTitle} numberOfLines={1} ellipsizeMode="tail">
+                      {nextReward.title}
+                    </Text>
+                    <Text style={styles.rewardSubtitle} numberOfLines={1} ellipsizeMode="tail">
                       {currentPoints >= nextReward.pointsCost
                         ? '¡Ya puedes canjearlo!'
-                        : `Te faltan ${nextReward.pointsCost - currentPoints} puntos`}
+                        : `Te faltan ${nextReward.pointsCost - currentPoints} EcoPoints`}
                     </Text>
                   </View>
                 </View>
@@ -636,7 +623,12 @@ const useStyles = (colors: typeof theme.colors) =>
       marginBottom: theme.spacing.l,
       ...theme.shadows.soft,
     },
-    rewardLeft: { flexDirection: 'row', alignItems: 'center' },
+    rewardLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: theme.spacing.s,
+    },
     rewardIconBg: {
       width: 48,
       height: 48,
@@ -645,9 +637,27 @@ const useStyles = (colors: typeof theme.colors) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: theme.spacing.m,
+      flexShrink: 0,
     },
-    rewardTitle: { fontWeight: 'bold', fontSize: 16, color: colors.text },
-    rewardSubtitle: { fontSize: 14, color: colors.textSecondary },
-    rewardRight: { flexDirection: 'row', alignItems: 'center' },
+    rewardTextContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    rewardTitle: {
+      fontWeight: 'bold',
+      fontSize: 15,
+      color: colors.text,
+      marginBottom: 2,
+    },
+    rewardSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    rewardRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 0,
+      marginLeft: 4,
+    },
     rewardLink: { fontWeight: 'bold', fontSize: 14, color: colors.text, marginRight: 4 },
   });
