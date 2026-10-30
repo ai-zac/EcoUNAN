@@ -7,6 +7,9 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/social', authController.socialLogin);
 
+router.post('/verify-email', authController.verifyEmail);
+router.post('/resend-verification', authController.resendVerification);
+router.post('/change-unverified-email', authController.changeUnverifiedEmail);
 
 router.post('/forgot-password', authController.forgotPassword);
 router.put('/reset-password', authController.resetPassword);

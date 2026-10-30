@@ -14,6 +14,10 @@ export interface IUser extends Document {
   studentId?: string;
   profilePicture?: string;
   expoPushToken?: string;
+  isEmailVerified: boolean;
+  emailVerificationCodeHash?: string;
+  emailVerificationExpires?: Date;
+  lastVerificationEmailSentAt?: Date;
   resetPasswordCodeHash?: string;
   resetPasswordExpires?: Date;
   passwordChangedAt?: Date;
@@ -76,6 +80,24 @@ const userSchema: Schema = new Schema(
     },
     expoPushToken: {
       type: String,
+      required: false,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationCodeHash: {
+      type: String,
+      required: false,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      required: false,
+      select: false,
+    },
+    lastVerificationEmailSentAt: {
+      type: Date,
       required: false,
     },
     resetPasswordCodeHash: {

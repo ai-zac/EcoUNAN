@@ -1,5 +1,6 @@
 import { apiClient } from '../apiClient';
 import { AuthResponse, User } from '../../types';
+import { tokenStorage } from '../../utils/tokenStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const AuthService = {
@@ -16,7 +17,7 @@ export const AuthService = {
         ecoPoints: (authData as any).ecoPoints || 0,
       };
       
-      await AsyncStorage.setItem('@auth_token', authData.token);
+      await tokenStorage.setToken(authData.token);
       await AsyncStorage.setItem('@user_data', JSON.stringify(user));
 
       return response.data;
@@ -25,22 +26,65 @@ export const AuthService = {
     }
   },
 
-  register: async (name: string, email: string, password: string, faculty: string, career: string, studentId: string): Promise<AuthResponse> => {
+  register: async (name: string, email: string, password: string, faculty: string, career: string, studentId: string): Promise<any> => {
     try {
-      const response = await apiClient.post<AuthResponse>('/auth/register', { name, email, password, faculty, career, studentId });
+      const response = await apiClient.post('/auth/register', { name, email, password, faculty, career, studentId });
       const authData = response.data.data;
-      
+
+      if (authData?.token) {
+        const user: User = {
+          _id: authData._id,
+          name: authData.name,
+          email: authData.email,
+          role: 'user',
+          ecoPoints: 0,
+        };
+        await tokenStorage.setToken(authData.token);
+        await AsyncStorage.setItem('@user_data', JSON.stringify(user));
+      }
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  verifyEmail: async (email: string, code: string): Promise<AuthResponse> => {
+    try {
+      const response = await apiClient.post<AuthResponse>('/auth/verify-email', { email, code });
+      const authData = response.data.data;
+
       const user: User = {
         _id: authData._id,
         name: authData.name,
         email: authData.email,
-        role: 'user',
-        ecoPoints: 0,
+        role: (authData.role as User['role']) || 'user',
+        ecoPoints: (authData as any).ecoPoints || 0,
       };
-      
-      await AsyncStorage.setItem('@auth_token', authData.token);
-      await AsyncStorage.setItem('@user_data', JSON.stringify(user));
 
+      if (authData.token) {
+        await tokenStorage.setToken(authData.token);
+        await AsyncStorage.setItem('@user_data', JSON.stringify(user));
+      }
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  resendVerification: async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await apiClient.post('/auth/resend-verification', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  changeUnverifiedEmail: async (oldEmail: string, newEmail: string): Promise<{ success: boolean; message: string; data?: { email: string } }> => {
+    try {
+      const response = await apiClient.post('/auth/change-unverified-email', { oldEmail, newEmail });
       return response.data;
     } catch (error) {
       throw error;
@@ -80,7 +124,7 @@ export const AuthService = {
         ecoPoints: (authData as any).ecoPoints || 0,
       };
 
-      await AsyncStorage.setItem('@auth_token', authData.token);
+      await tokenStorage.setToken(authData.token);
       await AsyncStorage.setItem('@user_data', JSON.stringify(user));
 
       return response.data;
@@ -90,7 +134,7 @@ export const AuthService = {
   },
 
   logout: async (): Promise<void> => {
-    await AsyncStorage.removeItem('@auth_token');
+    await tokenStorage.removeToken();
     await AsyncStorage.removeItem('@user_data');
   },
 
