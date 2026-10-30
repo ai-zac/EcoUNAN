@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, X, Trophy, Recycle, Package } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { userService } from '../api/services/user.service';
 import { RecycleService } from '../api/services/recycle.service';
 import { User } from '../types';
@@ -13,7 +13,8 @@ import { API_BASE_URL } from '../api/apiClient';
 
 export const RankingScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
-  const styles = useStyles(colors);
+  const { isDark } = useThemeMode();
+  const styles = useStyles(colors, isDark);
 
   const [ranking, setRanking] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +29,10 @@ export const RankingScreen = ({ navigation }: any) => {
   const modalScale = useRef(new Animated.Value(0.8)).current;
   const modalOpacity = useRef(new Animated.Value(0)).current;
 
-  // Animaciones elegantes para la interfaz de ranking
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
 
-  // Podio: 2do lugar (Plata/Izquierda), 1er lugar (Oro/Centro), 3er lugar (Bronce/Derecha)
   const podium2Fade = useRef(new Animated.Value(0)).current;
   const podium2Slide = useRef(new Animated.Value(40)).current;
   const podium2Scale = useRef(new Animated.Value(0.85)).current;
@@ -76,14 +75,13 @@ export const RankingScreen = ({ navigation }: any) => {
     listSlide.setValue(25);
 
     Animated.stagger(80, [
-      // 1. Cabecera y botón de retroceso
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(backButtonScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       ]),
 
-      // 2. Alzan los flancos del podio (2.º y 3.er puesto a los lados)
       Animated.parallel([
         Animated.timing(podium2Fade, { toValue: 1, duration: 320, useNativeDriver: true }),
         Animated.spring(podium2Slide, { toValue: 0, tension: 65, friction: 7.5, useNativeDriver: true }),
@@ -102,7 +100,6 @@ export const RankingScreen = ({ navigation }: any) => {
         ]),
       ]),
 
-      // 3. ¡El 1.er lugar se alza en el centro con presencia triunfal y rebote dorado!
       Animated.parallel([
         Animated.timing(podium1Fade, { toValue: 1, duration: 350, useNativeDriver: true }),
         Animated.spring(podium1Slide, { toValue: 0, tension: 60, friction: 7, useNativeDriver: true }),
@@ -113,7 +110,6 @@ export const RankingScreen = ({ navigation }: any) => {
         ]),
       ]),
 
-      // 4. La lista de posiciones (4.º en adelante) se desliza suavemente
       Animated.parallel([
         Animated.timing(listFade, { toValue: 1, duration: 340, useNativeDriver: true }),
         Animated.spring(listSlide, { toValue: 0, tension: 65, friction: 8, useNativeDriver: true }),
@@ -131,7 +127,6 @@ export const RankingScreen = ({ navigation }: any) => {
     return unsubscribe;
   }, [navigation]);
 
-  // Polling automático en tiempo real en segundo plano mientras RankingScreen esté activa
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
 
@@ -141,7 +136,7 @@ export const RankingScreen = ({ navigation }: any) => {
         try {
           await loadData(false);
         } catch (e) {
-          // Polling silencioso
+
         }
       }, 4000);
     };
@@ -214,8 +209,7 @@ export const RankingScreen = ({ navigation }: any) => {
     setModalVisible(true);
     setLoadingStats(true);
     setSelectedUserStats(null);
-    
-    
+
     Animated.parallel([
       Animated.timing(modalOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.spring(modalScale, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true })
@@ -245,14 +239,14 @@ export const RankingScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            colors={[colors.primary, colors.accent]} 
-            tintColor={colors.primary} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary, colors.accent]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -265,7 +259,7 @@ export const RankingScreen = ({ navigation }: any) => {
             </Animated.View>
             <Text style={styles.title}>Ranking EcoUNAN</Text>
           </View>
-          <Text style={styles.subtitle}>Recicla, suma puntos y sube de posición.</Text>
+          <Text style={styles.subtitle}>Recicla, suma EcoPoints y sube de posición.</Text>
         </Animated.View>
 
         {loading ? (
@@ -274,7 +268,7 @@ export const RankingScreen = ({ navigation }: any) => {
           <>
             {top3.length > 0 && (
               <View style={styles.podiumContainer}>
-                {/* 2do Lugar (Izquierda - Plata) */}
+
                 {top3[1] && (
                   <Animated.View
                     style={{
@@ -295,7 +289,7 @@ export const RankingScreen = ({ navigation }: any) => {
                         )}
                       </View>
                       <Text style={styles.podiumName} numberOfLines={1}>{top3[1].name}</Text>
-                      <Text style={styles.podiumPoints}>{top3[1].ecoPoints} puntos</Text>
+                      <Text style={styles.podiumPoints}>{top3[1].ecoPoints} EcoPoints</Text>
                       <Animated.View style={{ transform: [{ scale: podium2BadgeScale }] }}>
                         <View style={styles.positionBadgeGray}>
                           <Text style={styles.positionBadgeTextGray}>2.º</Text>
@@ -305,7 +299,6 @@ export const RankingScreen = ({ navigation }: any) => {
                   </Animated.View>
                 )}
 
-                {/* 1er Lugar (Centro - Oro) */}
                 {top3[0] && (
                   <Animated.View
                     style={{
@@ -332,7 +325,7 @@ export const RankingScreen = ({ navigation }: any) => {
                         </Animated.View>
                       </View>
                       <Text style={styles.podiumName} numberOfLines={1}>{top3[0].name}</Text>
-                      <Text style={styles.podiumPointsGold}>{top3[0].ecoPoints} puntos</Text>
+                      <Text style={styles.podiumPointsGold}>{top3[0].ecoPoints} EcoPoints</Text>
                       <Animated.View style={{ transform: [{ scale: podium1BadgeScale }] }}>
                         <View style={styles.positionBadgeGold}>
                           <Text style={styles.positionBadgeTextGold}>1.º</Text>
@@ -342,7 +335,6 @@ export const RankingScreen = ({ navigation }: any) => {
                   </Animated.View>
                 )}
 
-                {/* 3er Lugar (Derecha - Bronce) */}
                 {top3[2] && (
                   <Animated.View
                     style={{
@@ -363,7 +355,7 @@ export const RankingScreen = ({ navigation }: any) => {
                         )}
                       </View>
                       <Text style={styles.podiumName} numberOfLines={1}>{top3[2].name}</Text>
-                      <Text style={styles.podiumPointsBronze}>{top3[2].ecoPoints} puntos</Text>
+                      <Text style={styles.podiumPointsBronze}>{top3[2].ecoPoints} EcoPoints</Text>
                       <Animated.View style={{ transform: [{ scale: podium3BadgeScale }] }}>
                         <View style={styles.positionBadgeBronze}>
                           <Text style={styles.positionBadgeTextBronze}>3.º</Text>
@@ -375,18 +367,17 @@ export const RankingScreen = ({ navigation }: any) => {
               </View>
             )}
 
-            {/* Lista de posiciones (4to en adelante) */}
             <Animated.View style={[styles.listContainer, { opacity: listFade, transform: [{ translateY: listSlide }] }]}>
               {restOfList.map((user, index) => {
                 const isMe = user._id === currentUserId;
-                const position = index + 4; 
+                const position = index + 4;
                 return (
-                  <TouchableOpacity 
-                    key={user._id} 
+                  <TouchableOpacity
+                    key={user._id}
                     activeOpacity={0.7}
                     onPress={() => handleUserPress(user)}
                     style={[
-                      styles.listItem, 
+                      styles.listItem,
                       isMe && styles.listItemMe
                     ]}
                   >
@@ -399,7 +390,7 @@ export const RankingScreen = ({ navigation }: any) => {
                       )}
                     </View>
                     <Text style={[styles.listName, isMe && styles.listTextMe]}>{user.name} {isMe && '(Tú)'}</Text>
-                    <Text style={[styles.listPoints, isMe && styles.listPointsMe]}>{user.ecoPoints} pts</Text>
+                    <Text style={[styles.listPoints, isMe && styles.listPointsMe]}>{user.ecoPoints} EcoPoints</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -446,7 +437,7 @@ export const RankingScreen = ({ navigation }: any) => {
                       <Trophy size={20} color="#3B82F6" />
                     </View>
                     <Text style={styles.modalStatValue}>{selectedUser.lifetimePoints || selectedUser.ecoPoints || 0}</Text>
-                    <Text style={styles.modalStatLabel}>Históricos</Text>
+                    <Text style={styles.modalStatLabel}>EcoPoints Históricos</Text>
                   </View>
                   <View style={styles.modalStatCard}>
                     <View style={[styles.statIconBox, { backgroundColor: getUserRank(selectedUser.lifetimePoints || selectedUser.ecoPoints || 0).currentRank.color + '20' }]}>
@@ -489,10 +480,10 @@ export const RankingScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface },
+const useStyles = (colors: typeof theme.colors, isDark: boolean) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { paddingHorizontal: theme.spacing.m, paddingTop: 4, paddingBottom: 60 },
-  
+
   header: { marginBottom: 12, marginTop: 2 },
   titleRow: {
     flexDirection: 'row',
@@ -514,11 +505,18 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     flex: 1,
   },
   podiumCardSide: { height: 142, justifyContent: 'flex-end', paddingBottom: 12 },
-  podiumCardCenter: { height: 168, backgroundColor: '#DCFCE7', borderColor: '#16A34A', justifyContent: 'flex-end', paddingBottom: 16, zIndex: 10 },
-  
+  podiumCardCenter: {
+    height: 168,
+    backgroundColor: isDark ? '#16A34A20' : '#DCFCE7',
+    borderColor: '#16A34A',
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
+    zIndex: 10,
+  },
+
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   avatarText: { fontSize: 15, fontWeight: '900' },
-  
+
   podiumName: { fontSize: 12, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 2 },
   podiumPoints: { fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 8 },
   podiumPointsGold: { fontSize: 12, fontWeight: '900', color: '#D97706', marginBottom: 10 },
@@ -526,19 +524,19 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
 
   positionBadgeGray: { backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
   positionBadgeTextGray: { fontSize: 11, fontWeight: '800', color: colors.text },
-  positionBadgeGold: { backgroundColor: '#FEF3C7', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 12 },
+  positionBadgeGold: { backgroundColor: isDark ? '#78350F40' : '#FEF3C7', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 12 },
   positionBadgeTextGold: { fontSize: 11, fontWeight: '900', color: '#D97706' },
   podiumTrophyBadge: {
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: isDark ? '#78350F40' : '#FEF3C7',
     borderRadius: 12,
     padding: 3,
     borderWidth: 1.5,
     borderColor: '#F59E0B',
   },
-  positionBadgeBronze: { backgroundColor: '#FFEDD5', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
+  positionBadgeBronze: { backgroundColor: isDark ? '#7C2D1240' : '#FFEDD5', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
   positionBadgeTextBronze: { fontSize: 11, fontWeight: '800', color: '#C2410C' },
 
   listContainer: { gap: 8 },
@@ -551,11 +549,14 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     borderRadius: 14,
     padding: 12,
   },
-  listItemMe: { backgroundColor: '#DCFCE7', borderColor: '#16A34A' },
-  
+  listItemMe: {
+    backgroundColor: isDark ? '#16A34A20' : '#DCFCE7',
+    borderColor: '#16A34A',
+  },
+
   listPosition: { fontSize: 16, fontWeight: '800', color: colors.textSecondary, width: 40 },
   listTextMe: { color: colors.text },
-  
+
   listAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   listAvatarMe: { backgroundColor: '#16A34A' },
   listAvatarText: { fontSize: 13, fontWeight: '800', color: colors.textSecondary },
@@ -565,7 +566,6 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   listPoints: { fontSize: 15, fontWeight: '900', color: colors.text },
   listPointsMe: { color: '#16A34A' },
 
-  
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -601,7 +601,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -649,7 +649,7 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   modalCareer: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.primary,
+    color: isDark ? '#22C55E' : colors.primary,
     marginBottom: 2,
     textAlign: 'center',
   },

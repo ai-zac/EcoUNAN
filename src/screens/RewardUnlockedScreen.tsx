@@ -1,6 +1,15 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, StatusBar, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Animated,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
 import {
   Trophy,
   Gift,
@@ -38,21 +47,18 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
     redemption?.status === 'completed'
   );
 
-  // Entrance Animations for Unlocked State
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Pulse animation for waiting dot/indicator
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Delivery Success Animations
   const successCircleScale = useRef(new Animated.Value(0.2)).current;
   const successFade = useRef(new Animated.Value(0)).current;
   const successSlide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    // Initial entrance animation
+
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
       Animated.parallel([
@@ -61,7 +67,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
       ]),
     ]).start();
 
-    // Pulse loop for waiting state
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.15, duration: 900, useNativeDriver: true }),
@@ -75,7 +80,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
     };
   }, []);
 
-  // Polling to detect in real-time when the admin scans the QR
   useEffect(() => {
     if (isDelivered) return;
 
@@ -99,7 +103,7 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
           triggerDeliverySuccess();
         }
       } catch (err) {
-        // silent polling catch
+
       }
     }, 2000);
 
@@ -155,9 +159,9 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle="dark-content"
+        backgroundColor={colors.surface}
       />
 
-      {/* Top Header with Back to Home Button */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -178,9 +182,7 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
         {isDelivered ? (
-          /* =================================================== */
-          /* PANTALLA DE ÉXITO: RECOMPENSA ENTREGADA AL USUARIO */
-          /* =================================================== */
+
           <View style={styles.deliveredContainer}>
             <View style={styles.circleContainer}>
               <Animated.View
@@ -206,7 +208,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
                 El brigadista o administrador ha confirmado la entrega física de tu premio. ¡Disfrútalo!
               </Text>
 
-              {/* Delivery Receipt Card */}
               <View style={styles.receiptCard}>
                 <View style={styles.receiptHeader}>
                   <Text style={styles.receiptBadgeText}>ENTREGA COMPLETADA</Text>
@@ -238,18 +239,16 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
                 <View style={styles.receiptDivider} />
 
                 <View style={styles.receiptFooterRow}>
-                  <Text style={styles.receiptPointsLabel}>Puntos canjeados:</Text>
+                  <Text style={styles.receiptPointsLabel}>EcoPoints canjeados:</Text>
                   <Text style={styles.receiptPointsValue}>
-                    -{reward.points || reward.pointsCost || 0} pts
+                    -{reward.points || reward.pointsCost || 0} EcoPoints
                   </Text>
                 </View>
               </View>
             </Animated.View>
           </View>
         ) : (
-          /* =================================================== */
-          /* PANTALLA PENDIENTE: MOSTRANDO QR AL ADMINISTRADOR  */
-          /* =================================================== */
+
           <View style={styles.pendingContainer}>
             <Animated.View
               style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}
@@ -270,7 +269,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
                 Presenta este código al brigadista o administrador para recibir tu incentivo físico.
               </Text>
 
-              {/* QR Card */}
               <View style={styles.qrCard}>
                 <View style={styles.cardHeader}>
                   <View
@@ -302,7 +300,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
                   </Text>
                 </View>
 
-                {/* Real-time waiting indicator */}
                 <View style={styles.waitingContainer}>
                   <Animated.View
                     style={[
@@ -319,7 +316,6 @@ export const RewardUnlockedScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        {/* Action Buttons */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -652,6 +648,6 @@ const useStyles = (colors: typeof theme.colors) =>
     secondaryButtonText: {
       fontSize: 14,
       fontWeight: '700',
-      color: colors.textSecondary,
+      color: colors.text,
     },
   });

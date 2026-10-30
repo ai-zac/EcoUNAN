@@ -40,7 +40,7 @@ import {
 } from '../utils/reportUtils';
 
 type StatusFilter = 'all' | 'validated' | 'pending' | 'rejected';
-type MaterialFilter = 'all' | 'pet' | 'aluminio' | 'papel' | 'carton' | 'plastico';
+type MaterialFilter = string;
 
 interface ReportKpis {
   total: number;
