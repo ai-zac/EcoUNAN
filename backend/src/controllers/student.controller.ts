@@ -211,7 +211,7 @@ export const studentController = {
         }
       }
 
-      if ((userLower === 'admin' || userLower === 'docente') && password === 'admin123') {
+      if (process.env.NODE_ENV !== 'production' && (userLower === 'admin' || userLower === 'docente') && password === 'admin123') {
         return res.json({
           success: true,
           mensaje: 'Inicio de sesión exitoso',
@@ -264,7 +264,8 @@ export const studentController = {
       let filter: any = {};
 
       if (q && typeof q === 'string' && q.trim().length > 0) {
-        const regex = new RegExp(q.trim(), 'i');
+        const sanitized = q.trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(sanitized, 'i');
         filter.$or = [
           { nombre: regex },
           { apellido: regex },
@@ -467,11 +468,16 @@ export const studentController = {
       if (studentConnection.readyState !== 1) {
         await new Promise((resolve, reject) => {
           if (studentConnection.readyState === 1) return resolve(true);
-          const t = setTimeout(() => reject(new Error('No se pudo conectar a la base de datos gestor_estudiantes')), 12000);
-          studentConnection.once('connected', () => {
+          let onConnected: () => void;
+          const t = setTimeout(() => {
+            studentConnection.removeListener('connected', onConnected);
+            reject(new Error('No se pudo conectar a la base de datos gestor_estudiantes'));
+          }, 12000);
+          onConnected = () => {
             clearTimeout(t);
             resolve(true);
-          });
+          };
+          studentConnection.once('connected', onConnected);
         });
       }
 

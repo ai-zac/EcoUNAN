@@ -20,3 +20,11 @@ studentConnection.on('connected', () => {
 studentConnection.on('error', (err) => {
   console.error(`[DB GestorEstudiantes Error] Error en conexión a gestor_estudiantes:`, err.message);
 });
+
+studentConnection.on('disconnected', () => {
+  console.warn(`[DB GestorEstudiantes] Desconectado de gestor_estudiantes`);
+});
+
+studentConnection.on('reconnected', () => {
+  console.log(`[DB GestorEstudiantes] Reconectado a gestor_estudiantes`);
+});

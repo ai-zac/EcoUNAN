@@ -15,11 +15,40 @@ export class StaffController {
       if (status === 'inactive') query.isActive = false;
 
       if (search && typeof search === 'string' && search.trim()) {
-        const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const rx = new RegExp(search.trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         query.$or = [{ name: rx }, { email: rx }, { studentId: rx }];
       }
 
-      const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+      const rawPage = Number(req.query.page);
+      const rawLimit = Number(req.query.limit);
+      const pageParam = req.query.page !== undefined ? (Number.isFinite(rawPage) ? Math.max(Math.floor(rawPage), 1) : 1) : null;
+      const limitParam = req.query.limit !== undefined ? (Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 100) : 20) : null;
+
+      const total = await User.countDocuments(query);
+      res.setHeader('X-Total-Count', total.toString());
+
+      if (pageParam || limitParam) {
+        const page = pageParam || 1;
+        const limit = limitParam || 20;
+        const skip = (page - 1) * limit;
+
+        const users = await User.find(query)
+          .select('-password')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
+
+        res.status(200).json({ success: true, total, page, limit, data: users });
+        return;
+      }
+
+      const users = await User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .lean();
+
       res.status(200).json({ success: true, data: users });
     } catch (error: any) {
       console.error('[500]', error);

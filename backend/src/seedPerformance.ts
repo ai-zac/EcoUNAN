@@ -1,6 +1,6 @@
 import mongoose, { Types } from 'mongoose';
 import dotenv from 'dotenv';
-import * as path from 'node:path';
+import path from 'path';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
@@ -83,11 +83,9 @@ async function runSeed() {
   await mongoose.connect(process.env.MONGO_URI as string);
   console.log('✅ Conectado a MongoDB Atlas con éxito.');
 
-  // Pre-calcular hash para password123 (ahorra tiempo de bcrypt en 250 inserciones)
   console.log('🔐 Generando salt y hash estándar para usuarios de prueba...');
   const commonPasswordHash = await bcrypt.hash('password123', 10);
 
-  // 1. Obtener usuarios existentes para preservarlos
   const existingUsers = await User.find({}).lean();
   const existingEmails = new Set(existingUsers.map(u => u.email.toLowerCase()));
   console.log(`ℹ️ Usuarios existentes encontrados: ${existingUsers.length} (serán preservados al 100%).`);

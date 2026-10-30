@@ -27,21 +27,23 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
       let decoded: any;
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        decoded = jwt.verify(token, process.env.JWT_SECRET as string, { algorithms: ['HS256'] }) as any;
       } catch (err) {
-
-        const fallbacks = ['EcoUnanSecretKey2026!@', 'EcoUnanSecretKey2026!@#'];
-        let matched = false;
-        for (const secret of fallbacks) {
-          try {
-            decoded = jwt.verify(token, secret) as any;
-            matched = true;
-            break;
-          } catch {
-
+        if (process.env.NODE_ENV !== 'production') {
+          const fallbacks = ['EcoUnanSecretKey2026!@', 'EcoUnanSecretKey2026!@#'];
+          let matched = false;
+          for (const secret of fallbacks) {
+            try {
+              decoded = jwt.verify(token, secret) as any;
+              matched = true;
+              break;
+            } catch {
+            }
           }
+          if (!matched) throw err;
+        } else {
+          throw err;
         }
-        if (!matched) throw err;
       }
 
       let user: IUser | null = null;
