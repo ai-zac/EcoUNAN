@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Modal, Animated, ScrollView } from 'react-native';
 import { ArrowLeft, Filter, Trash2, FileText, GlassWater, Recycle, Package, Gift, X, Calendar } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -214,8 +213,8 @@ export const AdminActivityLogScreen = ({ navigation }: any) => {
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Puntos gastados:</Text>
-                        <Text style={[styles.detailValue, { color: '#EF4444' }]}>{selectedActivity.details?.pointsSpent} pts</Text>
+                        <Text style={styles.detailLabel}>EcoPoints canjeados:</Text>
+                        <Text style={[styles.detailValue, { color: '#EF4444' }]}>{selectedActivity.details?.pointsSpent} EcoPoints</Text>
                       </View>
                     </>
                   ) : (
@@ -231,8 +230,8 @@ export const AdminActivityLogScreen = ({ navigation }: any) => {
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Puntos ganados:</Text>
-                        <Text style={[styles.detailValue, { color: '#10B981' }]}>+{selectedActivity.details?.points} pts</Text>
+                        <Text style={styles.detailLabel}>EcoPoints ganados:</Text>
+                        <Text style={[styles.detailValue, { color: '#10B981' }]}>+{selectedActivity.details?.points} EcoPoints</Text>
                       </View>
                       <View style={styles.divider} />
                       <View style={styles.detailRow}>

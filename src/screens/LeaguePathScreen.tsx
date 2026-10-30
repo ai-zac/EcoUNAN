@@ -1,6 +1,17 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Dimensions, TouchableOpacity, RefreshControl, StatusBar, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Animated,
+  Dimensions,
+  TouchableOpacity,
+  RefreshControl,
+  StatusBar,
+  Platform,
+} from 'react-native';
 import {
   ArrowLeft,
   Check,
@@ -29,26 +40,22 @@ export const LeaguePathScreen = ({ navigation }: any) => {
   const { isDark } = useThemeMode();
   const styles = useStyles(colors, isDark);
 
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
 
   const [lifetimePoints, setLifetimePoints] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Entrance Animations
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-15)).current;
   const heroFade = useRef(new Animated.Value(0)).current;
   const heroScale = useRef(new Animated.Value(0.92)).current;
   const heroSlide = useRef(new Animated.Value(20)).current;
 
-  // Progress Bar Animation
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // Subtle breathing pulse for current rank emblem
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Staggered animations for rank tier cards (5 tiers)
   const rankCardAnims = useRef(
     RANKS.map(() => ({
       fade: new Animated.Value(0),
@@ -57,13 +64,10 @@ export const LeaguePathScreen = ({ navigation }: any) => {
     }))
   ).current;
 
-  // Back button tactile spring scale
   const backButtonScale = useRef(new Animated.Value(1)).current;
 
-  // Calculate current rank data
   const rankData = getUserRank(lifetimePoints);
 
-  // Load cached user data initially
   useEffect(() => {
     let isMounted = true;
     AsyncStorage.getItem('@user_data').then((data) => {
@@ -73,12 +77,11 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           const pts = parsed.lifetimePoints || parsed.ecoPoints || 0;
           setLifetimePoints(pts);
         } catch {
-          // fallback
+
         }
       }
     });
 
-    // Also fetch fresh from server
     fetchFreshUser();
 
     return () => {
@@ -95,7 +98,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
         await AsyncStorage.setItem('@user_data', JSON.stringify(freshUser));
       }
     } catch {
-      // offline or silent
+
     }
   };
 
@@ -105,7 +108,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
     setRefreshing(false);
   }, []);
 
-  // Polling automático en tiempo real en segundo plano mientras LeaguePathScreen esté activa
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
 
@@ -115,7 +117,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
         try {
           await fetchFreshUser();
         } catch (e) {
-          // Polling silencioso
+
         }
       }, 4000);
     };
@@ -139,9 +141,8 @@ export const LeaguePathScreen = ({ navigation }: any) => {
     };
   }, [navigation]);
 
-  // Trigger cascade animations on mount
   useEffect(() => {
-    // Header & Hero cascade
+
     Animated.parallel([
       Animated.timing(headerFade, {
         toValue: 1,
@@ -176,7 +177,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
       ]),
     ]).start();
 
-    // Staggered entrance for each rank card
     const rankAnimations = rankCardAnims.map((anim) =>
       Animated.parallel([
         Animated.timing(anim.fade, {
@@ -204,7 +204,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
       Animated.stagger(90, rankAnimations),
     ]).start();
 
-    // Pulse loop for the emblem
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -226,7 +225,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
     };
   }, []);
 
-  // Animate progress bar fill whenever lifetimePoints changes
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: rankData.progressPercentage,
@@ -260,9 +258,9 @@ export const LeaguePathScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.surface}
       />
 
-      {/* Top Navigation Header */}
       <Animated.View
         style={[
           styles.header,
@@ -309,7 +307,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           />
         }
       >
-        {/* Hero Card: Current Rank Status */}
+
         <Animated.View
           style={[
             styles.heroCard,
@@ -320,7 +318,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
             },
           ]}
         >
-          {/* Subtle Ambient Background Highlight */}
+
           <View
             style={[
               styles.heroGlowBackdrop,
@@ -329,7 +327,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           />
 
           <View style={styles.heroTopRow}>
-            {/* Animated Emblem */}
+
             <Animated.View
               style={[
                 styles.emblemContainer,
@@ -351,7 +349,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
               </View>
             </Animated.View>
 
-            {/* Rank Identity & Lifetime Points */}
             <View style={styles.heroIdentity}>
               <View style={styles.rankStatusPill}>
                 <Sparkles size={11} color={rankData.currentRank.color} />
@@ -370,7 +367,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* Progress Bar towards Next Rank */}
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <View style={styles.progressLabelWrap}>
@@ -406,7 +402,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           </View>
         </Animated.View>
 
-        {/* Section Heading */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Escalera de Rangos</Text>
           <Text style={styles.sectionCaption}>
@@ -414,9 +409,8 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           </Text>
         </View>
 
-        {/* Vertical Roadmap / Timeline */}
         <View style={styles.timelineContainer}>
-          {/* Continuous Left Connector Line */}
+
           <View style={styles.timelineConnectorTrack} />
 
           {RANKS.map((rank, index) => {
@@ -436,7 +430,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                   },
                 ]}
               >
-                {/* Node Anchor on the left */}
+
                 <View style={styles.nodeColumn}>
                   <View
                     style={[
@@ -468,7 +462,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                   </View>
                 </View>
 
-                {/* Rank Card */}
                 <View
                   style={[
                     styles.rankCard,
@@ -484,7 +477,7 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                     !isUnlocked && styles.rankCardLocked,
                   ]}
                 >
-                  {/* Card Header */}
+
                   <View style={styles.cardHeaderRow}>
                     <View
                       style={[
@@ -524,7 +517,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                       <Text style={styles.cardSubtitle}>{rank.subtitle}</Text>
                     </View>
 
-                    {/* Status Badge */}
                     <View>
                       {isCurrent ? (
                         <View style={[styles.badgeCurrent, { backgroundColor: rank.color }]}>
@@ -546,10 +538,8 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                     </View>
                   </View>
 
-                  {/* Description */}
                   <Text style={styles.cardDescription}>{rank.description}</Text>
 
-                  {/* Perk / Benefit Row */}
                   <View
                     style={[
                       styles.perkContainer,
@@ -577,7 +567,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
                     </Text>
                   </View>
 
-                  {/* Card Footer: Points range & progress state */}
                   <View style={styles.cardFooter}>
                     <Text style={styles.pointsRangeText}>
                       Requisito: {rank.minPoints.toLocaleString()} {rank.maxPoints !== Infinity ? `a ${rank.maxPoints.toLocaleString()} pts` : '+ pts'}
@@ -595,7 +584,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           })}
         </View>
 
-        {/* Informative & Gamification FAQ Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <View style={styles.infoIconCircle}>
@@ -614,9 +602,9 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           <View style={styles.infoRow}>
             <ShieldCheck size={18} color={colors.primary} style={styles.infoBulletIcon} />
             <Text style={styles.infoText}>
-              <Text style={styles.infoHighlight}>Tus puntos nunca bajan de rango:</Text> Canjear
-              tus recompensas en la tienda descuenta puntos disponibles, pero tu nivel de rango
-              se calcula con tus <Text style={styles.infoHighlight}>puntos históricos totales</Text>.
+              <Text style={styles.infoHighlight}>Tus EcoPoints nunca bajan de rango:</Text> Canjear
+              tus recompensas en la tienda descuenta EcoPoints disponibles, pero tu nivel de rango
+              se calcula con tus <Text style={styles.infoHighlight}>EcoPoints históricos totales</Text>.
             </Text>
           </View>
 
@@ -637,7 +625,6 @@ export const LeaguePathScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Bottom space */}
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>

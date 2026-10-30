@@ -1,24 +1,35 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, ActivityIndicator, Alert, Animated } from 'react-native';
-import { 
-  ArrowLeft, 
-  Gift, 
-  Coffee, 
-  Shirt, 
-  BookOpen, 
-  Utensils, 
-  ShoppingBag, 
-  Award, 
-  Trophy, 
-  Medal, 
-  Ticket, 
-  Sparkles, 
-  Droplet, 
-  Star, 
-  Zap, 
-  Smartphone, 
-  Package, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Switch,
+  ActivityIndicator,
+  Alert,
+  Animated
+} from 'react-native';
+import {
+  ArrowLeft,
+  Gift,
+  Coffee,
+  Shirt,
+  BookOpen,
+  Utensils,
+  ShoppingBag,
+  Award,
+  Trophy,
+  Medal,
+  Ticket,
+  Sparkles,
+  Droplet,
+  Star,
+  Zap,
+  Smartphone,
+  Package,
   Check,
   Infinity as InfinityIcon
 } from 'lucide-react-native';
@@ -27,7 +38,6 @@ import { useThemeColors } from '../context/ThemeContext';
 import { rewardService } from '../api/services/reward.service';
 import { Reward } from '../types';
 
-// Catálogo de íconos seleccionables para recompensas
 const REWARD_ICONS = [
   { id: 'Gift', label: 'Regalo', Icon: Gift },
   { id: 'Coffee', label: 'Bebida', Icon: Coffee },
@@ -47,7 +57,6 @@ const REWARD_ICONS = [
   { id: 'Package', label: 'Combo', Icon: Package },
 ];
 
-// Paletas armónicas de colores (Color del ícono + Fondo suave)
 const COLOR_PALETTES = [
   { id: 'amber', label: 'Ámbar', color: '#D97706', bg: '#FEF3C7' },
   { id: 'emerald', label: 'Verde', color: '#16A34A', bg: '#DCFCE7' },
@@ -71,20 +80,17 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Campos principales del formulario
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [pointsCost, setPointsCost] = useState('');
   const [isUnlimitedStock, setIsUnlimitedStock] = useState(false);
   const [stock, setStock] = useState('10');
   const [isActive, setIsActive] = useState(true);
-  
-  // Selección visual de apariencia
+
   const [iconName, setIconName] = useState('Gift');
   const [iconColor, setIconColor] = useState('#D97706');
   const [iconBg, setIconBg] = useState('#FEF3C7');
 
-  // Animaciones de entrada instantánea tipo RecycleScreen
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(14)).current;
   const backButtonScale = useRef(new Animated.Value(0.7)).current;
@@ -123,14 +129,13 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
     footerSlide.setValue(18);
 
     Animated.stagger(65, [
-      // 1. Cabecera y botón volver
+
       Animated.parallel([
         Animated.timing(headerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(headerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
         Animated.spring(backButtonScale, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       ]),
 
-      // 2. Tarjeta de vista previa en tiempo real con micro-pop
       Animated.parallel([
         Animated.timing(previewFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(previewSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -141,19 +146,16 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
         ]),
       ]),
 
-      // 3. Campos de información básica y stock
       Animated.parallel([
         Animated.timing(formFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(formSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
 
-      // 4. Selectores visuales de íconos y colores
       Animated.parallel([
         Animated.timing(appearanceFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(appearanceSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
       ]),
 
-      // 5. Estado y botón de guardar
       Animated.parallel([
         Animated.timing(footerFade, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.spring(footerSlide, { toValue: 0, tension: 70, friction: 8, useNativeDriver: true }),
@@ -177,7 +179,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
         setTitle(reward.title);
         setDescription(reward.description || '');
         setPointsCost(reward.pointsCost.toString());
-        
+
         if (reward.stock === -1) {
           setIsUnlimitedStock(true);
           setStock('');
@@ -208,7 +210,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
   };
 
   const handleSave = async () => {
-    // 1. Validaciones de campos obligatorios
+
     if (!title.trim()) {
       Alert.alert('Nombre requerido', 'Por favor ingresa un nombre para la recompensa.');
       return;
@@ -221,7 +223,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
 
     const parsedPoints = parseInt(pointsCost, 10);
     if (isNaN(parsedPoints) || parsedPoints <= 0) {
-      Alert.alert('Costo inválido', 'El costo en puntos debe ser un número entero mayor a 0 (ej: 250).');
+      Alert.alert('Costo inválido', 'El costo en EcoPoints debe ser un número entero mayor a 0 (ej: 250).');
       return;
     }
 
@@ -271,8 +273,8 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
         <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Volver atrás"
@@ -287,17 +289,16 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          
-          {/* Vista previa en tiempo real */}
-          <Animated.View 
+
+          <Animated.View
             style={[
-              styles.previewContainer, 
-              { 
-                opacity: previewFade, 
+              styles.previewContainer,
+              {
+                opacity: previewFade,
                 transform: [
                   { translateY: previewSlide },
                   { scale: previewScale }
-                ] 
+                ]
               }
             ]}
           >
@@ -329,11 +330,10 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
             </View>
           </Animated.View>
 
-          {/* Bloque de datos generales */}
           <Animated.View style={{ opacity: formFade, transform: [{ translateY: formSlide }] }}>
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre de la recompensa <Text style={styles.requiredMark}>*</Text></Text>
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 value={title}
                 onChangeText={setTitle}
@@ -344,7 +344,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Descripción <Text style={styles.requiredMark}>*</Text></Text>
-              <TextInput 
+              <TextInput
                 style={[styles.input, styles.textArea]}
                 value={description}
                 onChangeText={setDescription}
@@ -356,8 +356,8 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Costo en puntos EcoUNAN <Text style={styles.requiredMark}>*</Text></Text>
-              <TextInput 
+              <Text style={styles.label}>Costo en EcoPoints <Text style={styles.requiredMark}>*</Text></Text>
+              <TextInput
                 style={styles.input}
                 value={pointsCost}
                 onChangeText={setPointsCost}
@@ -367,7 +367,6 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
               />
             </View>
 
-            {/* Selector moderno de Stock / Disponibilidad (sin -1 visible) */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Disponibilidad de inventario <Text style={styles.requiredMark}>*</Text></Text>
               <View style={styles.stockModeRow}>
@@ -402,7 +401,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
                 </View>
               ) : (
                 <View style={{ marginTop: 10 }}>
-                  <TextInput 
+                  <TextInput
                     style={styles.input}
                     value={stock}
                     onChangeText={setStock}
@@ -416,12 +415,11 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
             </View>
           </Animated.View>
 
-          {/* Bloque visual: Selector de Ícono y Paleta de Colores */}
           <Animated.View style={{ opacity: appearanceFade, transform: [{ translateY: appearanceSlide }] }}>
             <View style={styles.appearanceSection}>
               <Text style={styles.sectionTitle}>Selección visual del ícono</Text>
               <Text style={styles.helperText}>Elige el símbolo que mejor represente el artículo:</Text>
-              
+
               <View style={styles.iconsGrid}>
                 {REWARD_ICONS.map((item) => {
                   const isSelected = iconName === item.id;
@@ -479,7 +477,6 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
             </View>
           </Animated.View>
 
-          {/* Bloque final: Estado y Botón de guardar */}
           <Animated.View style={{ opacity: footerFade, transform: [{ translateY: footerSlide }] }}>
             <View style={styles.switchGroup}>
               <View style={{ flex: 1, paddingRight: 12 }}>
@@ -488,7 +485,7 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
                   {isActive ? 'Visible inmediatamente en el catálogo de estudiantes' : 'Oculta temporalmente para los usuarios'}
                 </Text>
               </View>
-              <Switch 
+              <Switch
                 value={isActive}
                 onValueChange={setIsActive}
                 trackColor={{ false: '#CBD5E1', true: '#10B981' }}
@@ -496,8 +493,8 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
               />
             </View>
 
-            <TouchableOpacity 
-              style={[styles.saveButton, saving && { opacity: 0.7 }]} 
+            <TouchableOpacity
+              style={[styles.saveButton, saving && { opacity: 0.7 }]}
               onPress={handleSave}
               disabled={saving}
               activeOpacity={0.85}
@@ -518,22 +515,22 @@ export const AdminEditRewardScreen = ({ route, navigation }: any) => {
 
 const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: theme.spacing.m, 
-    paddingTop: theme.spacing.xl, 
-    paddingBottom: theme.spacing.m 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.m,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.m
   },
-  backButton: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    borderWidth: 1, 
-    borderColor: colors.border, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginRight: 12 
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
   },
   title: { fontSize: 22, fontWeight: '900', color: colors.text },
   container: { padding: theme.spacing.m, paddingBottom: 100 },

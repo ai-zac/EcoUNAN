@@ -1,6 +1,5 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Gift, Award, Trophy, QrCode, X } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
@@ -80,7 +79,7 @@ export const MyRewardsScreen = ({ navigation }: any) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.subtitle}>Incentivos que has desbloqueado con tus puntos.</Text>
+        <Text style={styles.subtitle}>Incentivos que has desbloqueado con tus EcoPoints.</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />

@@ -64,20 +64,17 @@ const MONTH_NAMES = [
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-// Claves para persistencia en caché instantánea
 const CACHE_USER_KEY = '@ecounan_pts_user';
 const CACHE_RECYCLES_KEY = '@ecounan_pts_recycles';
 const CACHE_REDEMPTIONS_KEY = '@ecounan_pts_redemptions';
 const CACHE_REWARDS_KEY = '@ecounan_pts_rewards';
 
-// Caché en memoria para renderizado instantáneo en Frame 0
 let memoryUserCache: any = null;
 let memoryRecyclesCache: any[] = [];
 let memoryRedemptionsCache: any[] = [];
 let memoryRewardsCache: any[] = [];
 let memoryPinnedRewardCache: PinnedRewardInfo | null = null;
 
-// Hidratar caché desde AsyncStorage al cargar módulo
 AsyncStorage.multiGet([
   CACHE_USER_KEY,
   CACHE_RECYCLES_KEY,
@@ -117,7 +114,7 @@ const AnimatedHistoryItem: React.FC<AnimatedHistoryItemProps> = React.memo(({
   styles,
   getIconForType,
 }) => {
-  // Animación en cascada idéntica a RecycleScreen: baja desde -18 a 0 con resorte suave y micro-pop del ícono
+
   const slideAnim = useRef(new Animated.Value(-18)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.96)).current;
@@ -217,7 +214,6 @@ const AnimatedHistoryItem: React.FC<AnimatedHistoryItemProps> = React.memo(({
     );
   }
 
-  // Entrada de reciclaje
   let iconBg = '#DCFCE7';
   let iconColor = '#16A34A';
   let iconType = 'plastic';
@@ -305,7 +301,7 @@ export const PointsScreen = ({ navigation }: any) => {
   const styles = useStyles(colors);
 
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
   const hasOpenedChildScreenRef = useRef(false);
 
@@ -844,7 +840,7 @@ export const PointsScreen = ({ navigation }: any) => {
           />
         }
       >
-        {/* Cabecera con animación propia */}
+
         <Animated.View style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
           <View style={styles.titleRow}>
             <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
@@ -863,12 +859,11 @@ export const PointsScreen = ({ navigation }: any) => {
                 <ArrowLeft size={24} color={colors.text} />
               </TouchableOpacity>
             </Animated.View>
-            <Text style={styles.title}>Mis puntos</Text>
+            <Text style={styles.title}>Mis EcoPoints</Text>
           </View>
           <Text style={styles.subtitle}>Gestiona tus logros y canjes ambientales.</Text>
         </Animated.View>
 
-        {/* Tarjeta de Balance animada con escala y resorte */}
         <Animated.View
           style={[
             styles.balanceCard,
@@ -882,22 +877,21 @@ export const PointsScreen = ({ navigation }: any) => {
             {renderDonutChart()}
           </Animated.View>
           <View style={styles.balanceTextWrapper}>
-            <Text style={styles.balanceTitle}>Puntos disponibles</Text>
+            <Text style={styles.balanceTitle}>EcoPoints disponibles</Text>
             <Text style={styles.balanceSubtitle}>
               {targetReward
                 ? targetReward.isPinned
                   ? currentPoints >= targetPoints
                     ? `¡Meta alcanzada! Ya puedes canjear ${targetReward.title}.`
-                    : `Te faltan ${pointsRemaining.toLocaleString()} pts para alcanzar tu meta: ${targetReward.title} (${progressPercent}%).`
+                    : `Te faltan ${pointsRemaining.toLocaleString()} EcoPoints para alcanzar tu meta: ${targetReward.title} (${progressPercent}%).`
                   : currentPoints >= targetPoints
                   ? `¡Ya puedes canjear ${targetReward.title}!`
-                  : `Te faltan ${pointsRemaining.toLocaleString()} pts para ${targetReward.title} (${progressPercent}%).`
+                  : `Te faltan ${pointsRemaining.toLocaleString()} EcoPoints para ${targetReward.title} (${progressPercent}%).`
                 : `${progressPercent}% completado.`}
             </Text>
           </View>
         </Animated.View>
 
-        {/* Controles de Canje y Filtros */}
         <Animated.View style={{ opacity: controlsFade }}>
           <TouchableOpacity
             style={styles.redeemButton}
@@ -910,7 +904,6 @@ export const PointsScreen = ({ navigation }: any) => {
             <Text style={styles.redeemButtonText}>Canjear recompensas</Text>
           </TouchableOpacity>
 
-          {/* Filtros de Categoría: Todo, Ganados, Canjeados */}
           <View style={styles.filtersContainer}>
             {FILTERS.map((filter) => {
               const isActive = activeFilter === filter;
@@ -937,7 +930,6 @@ export const PointsScreen = ({ navigation }: any) => {
             })}
           </View>
 
-          {/* Filtros de Período y Botón de Calendario */}
           <View style={styles.periodRowWrapper}>
             <ScrollView
               horizontal
@@ -965,7 +957,6 @@ export const PointsScreen = ({ navigation }: any) => {
                 );
               })}
 
-              {/* Chip de Calendario con fecha seleccionada o botón */}
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => setCalendarModalVisible(true)}
@@ -1005,9 +996,8 @@ export const PointsScreen = ({ navigation }: any) => {
             </ScrollView>
           </View>
 
-          {/* Encabezado del historial con contador */}
           <View style={styles.historyHeaderRow}>
-            <Text style={styles.sectionTitle}>Historial de puntos</Text>
+            <Text style={styles.sectionTitle}>Historial de EcoPoints</Text>
             <View style={styles.historyCountBadge}>
               <Text style={styles.historyCountText}>
                 {filteredHistory.length} {filteredHistory.length === 1 ? 'movimiento' : 'movimientos'}
@@ -1016,7 +1006,6 @@ export const PointsScreen = ({ navigation }: any) => {
           </View>
         </Animated.View>
 
-        {/* Lista animada con efecto cascada (bajan los elementos con micro-pop) */}
         {filteredHistory.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBg}>
@@ -1031,7 +1020,7 @@ export const PointsScreen = ({ navigation }: any) => {
                 : activeFilter === 'Canjeados'
                 ? 'No has realizado canjes en este período.'
                 : activeFilter === 'Ganados'
-                ? 'No has ganado puntos en este período.'
+                ? 'No has ganado EcoPoints en este período.'
                 : 'No se encontraron actividades para este período.'}
             </Text>
             <TouchableOpacity
@@ -1067,7 +1056,6 @@ export const PointsScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      {/* Modal Interactivo de Calendario */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -1076,7 +1064,7 @@ export const PointsScreen = ({ navigation }: any) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.calendarModalContent}>
-            {/* Cabecera del Calendario */}
+
             <View style={styles.calendarModalHeader}>
               <View>
                 <Text style={styles.calendarModalTitle}>Calendario de actividad</Text>
@@ -1090,7 +1078,6 @@ export const PointsScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Selector de Mes */}
             <View style={styles.monthNavRow}>
               <TouchableOpacity
                 style={styles.monthNavBtn}
@@ -1111,7 +1098,6 @@ export const PointsScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Días de la semana */}
             <View style={styles.weekdaysRow}>
               {WEEKDAYS.map((day) => (
                 <Text key={day} style={styles.weekdayText}>
@@ -1120,7 +1106,6 @@ export const PointsScreen = ({ navigation }: any) => {
               ))}
             </View>
 
-            {/* Cuadrícula de días */}
             <View style={styles.calendarGrid}>
               {calendarGrid.map((dayNum, idx) => {
                 if (dayNum === null) {
@@ -1165,7 +1150,6 @@ export const PointsScreen = ({ navigation }: any) => {
                       {dayNum}
                     </Text>
 
-                    {/* Puntitos de actividad */}
                     <View style={styles.activityDotsRow}>
                       {activity?.hasRecycle && (
                         <View
@@ -1189,7 +1173,6 @@ export const PointsScreen = ({ navigation }: any) => {
               })}
             </View>
 
-            {/* Leyenda de actividad */}
             <View style={styles.calendarLegendRow}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
@@ -1201,7 +1184,6 @@ export const PointsScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Botones de acción inferior */}
             <View style={styles.calendarFooterRow}>
               <TouchableOpacity
                 style={styles.calendarFooterSecondaryBtn}
@@ -1226,7 +1208,6 @@ export const PointsScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* Modal Detalle de Movimiento */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -1263,7 +1244,7 @@ export const PointsScreen = ({ navigation }: any) => {
                 </Text>
 
                 <View style={styles.modalRedemptionBox}>
-                  <Text style={styles.modalPointsLabel}>Puntos canjeados</Text>
+                  <Text style={styles.modalPointsLabel}>EcoPoints canjeados</Text>
                   <Text style={styles.modalRedemptionValue}>-{selectedItem.data.pointsSpent}</Text>
                 </View>
 
@@ -1331,7 +1312,7 @@ export const PointsScreen = ({ navigation }: any) => {
                 </Text>
 
                 <View style={styles.modalPointsBox}>
-                  <Text style={styles.modalPointsLabel}>Puntos Obtenidos</Text>
+                  <Text style={styles.modalPointsLabel}>EcoPoints Obtenidos</Text>
                   <Text style={styles.modalPointsValue}>+{selectedItem.data.totalPoints || 0}</Text>
                 </View>
 

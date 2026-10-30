@@ -1,14 +1,14 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Animated, TouchableOpacity } from 'react-native';
 import { ArrowLeft, Gift, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { theme } from '../theme/theme';
-import { useThemeColors } from '../context/ThemeContext';
+import { useThemeColors, useThemeMode } from '../context/ThemeContext';
 import { Button } from '../components/Button';
 
 export const RewardDetailScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
-  const styles = useStyles(colors);
+  const { isDark } = useThemeMode();
+  const styles = useStyles(colors, isDark);
 
   const slideAnim = useRef(new Animated.Value(40)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -41,7 +41,7 @@ export const RewardDetailScreen = ({ navigation }: any) => {
           <View style={styles.infoCard}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>Kit EcoUNAN</Text>
-              <Text style={styles.pointsCost}>2,000 pts</Text>
+              <Text style={styles.pointsCost}>2,000 EcoPoints</Text>
             </View>
             <Text style={styles.description}>
               Un kit especial que incluye una botella reutilizable de acero inoxidable, una libreta de papel reciclado y una camiseta con el logo de EcoUNAN.
@@ -49,7 +49,7 @@ export const RewardDetailScreen = ({ navigation }: any) => {
 
             <View style={styles.alertBox}>
               <AlertCircle size={20} color="#F59E0B" style={{ marginRight: 8 }} />
-              <Text style={styles.alertText}>Te faltan 750 puntos para canjear</Text>
+              <Text style={styles.alertText}>Te faltan 750 EcoPoints para canjear</Text>
             </View>
           </View>
 
@@ -83,26 +83,28 @@ export const RewardDetailScreen = ({ navigation }: any) => {
   );
 };
 
-const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
+const useStyles = (colors: typeof theme.colors, isDark: boolean) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.m, paddingTop: theme.spacing.s, paddingBottom: theme.spacing.m },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { ...theme.typography.h3 },
+  headerTitle: { ...theme.typography.h3, color: colors.text },
   
   container: { padding: theme.spacing.m, paddingBottom: 100 },
   
   imageContainer: {
     height: 200,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: isDark ? '#F59E0B20' : '#FEF3C7',
     borderRadius: theme.borderRadius.l,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: theme.spacing.l,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: colors.border,
     ...theme.shadows.soft,
   },
   
   infoCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     padding: theme.spacing.l,
     borderRadius: theme.borderRadius.m,
     borderWidth: 1,
@@ -111,17 +113,17 @@ const useStyles = (colors: typeof theme.colors) => StyleSheet.create({
     ...theme.shadows.soft,
   },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.s },
-  title: { ...theme.typography.h2 },
+  title: { ...theme.typography.h2, color: colors.text },
   pointsCost: { fontSize: 16, fontWeight: 'bold', color: '#F59E0B' },
   description: { ...theme.typography.body, color: colors.textSecondary, marginBottom: theme.spacing.m },
   
-  alertBox: { flexDirection: 'row', backgroundColor: '#FEF3C7', padding: theme.spacing.m, borderRadius: 8, alignItems: 'center' },
-  alertText: { flex: 1, color: '#B45309', fontWeight: 'bold' },
+  alertBox: { flexDirection: 'row', backgroundColor: isDark ? '#F59E0B20' : '#FEF3C7', padding: theme.spacing.m, borderRadius: 8, alignItems: 'center', borderWidth: isDark ? 1 : 0, borderColor: '#F59E0B40' },
+  alertText: { flex: 1, color: isDark ? '#FBBF24' : '#B45309', fontWeight: 'bold' },
 
-  sectionTitle: { ...theme.typography.h3, marginBottom: theme.spacing.m },
+  sectionTitle: { ...theme.typography.h3, color: colors.text, marginBottom: theme.spacing.m },
   termsList: { paddingHorizontal: theme.spacing.s },
   termItem: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.s },
   termText: { ...theme.typography.body, color: colors.textSecondary },
 
-  footer: { padding: theme.spacing.m, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: theme.spacing.m, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
 });
