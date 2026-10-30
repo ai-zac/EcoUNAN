@@ -1,8 +1,8 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, StatusBar } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { Camera, CameraView } from 'expo-camera';
-import { ArrowLeft, ScanLine, Sparkles, QrCode } from 'lucide-react-native';
+import { ArrowLeft, ScanLine, Sparkles, QrCode, RefreshCw } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { useThemeColors } from '../context/ThemeContext';
 import { RecycleService } from '../api/services/recycle.service';
@@ -11,13 +11,14 @@ import { AdminService } from '../api/services/admin.service';
 export const QRScannerScreen = ({ navigation, route }: any) => {
   const colors = useThemeColors();
   const styles = useStyles(colors);
+  const isFocused = useIsFocused();
   const isRedemption = route.params?.scanningRedemption === true;
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(
-    isRedemption ? 'Validando entrega de recompensa...' : 'Validando y asignando puntos...'
+    isRedemption ? 'Validando entrega de recompensa...' : 'Validando y asignando EcoPoints...'
   );
 
   const lockRef = useRef(false);
@@ -29,10 +30,30 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        const current = await Camera.getCameraPermissionsAsync();
+        if (current.status === 'granted') {
+          if (isMounted) setHasPermission(true);
+          return;
+        }
+        const requested = await Camera.requestCameraPermissionsAsync();
+        if (isMounted) {
+          setHasPermission(requested.status === 'granted');
+        }
+      } catch (err) {
+        console.error('[QRScanner] Error al solicitar permisos de cámara:', err);
+        if (isMounted) {
+          setHasPermission(false);
+        }
+      }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }: any) => {
@@ -41,7 +62,6 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
     setScanned(true);
 
     try {
-      // 1. Caso QR de Canje (Para Administrador / Brigadista)
       if (typeof data === 'string' && data.startsWith('REDEMPTION-')) {
         setLoadingMessage('Validando entrega de recompensa...');
         setLoading(true);
@@ -51,47 +71,81 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
         return;
       }
 
-      setLoadingMessage('Validando y asignando puntos...');
-      setLoading(true);
-
-      // 2. Caso QR de Aprobación de Reciclaje (Para Estudiante)
       let parsed: any = null;
       try {
         parsed = JSON.parse(data);
-      } catch {
-        // no es json
-      }
+      } catch {}
 
       if (parsed?.type === 'eco-approve') {
+        setLoadingMessage('Validando y asignando EcoPoints...');
+        setLoading(true);
         const record = await RecycleService.confirmPresential(data);
-        // Navegación instantánea a la pantalla de celebración
         navigation.replace('RecycleSuccess', { recycle: record });
         return;
       }
 
-      // 3. Código no reconocido
+      // Código no reconocido: no activar pantalla de carga y desbloquear cámara al cerrar alerta
+      setLoading(false);
       Alert.alert(
         'QR no reconocido',
         'Este código QR no corresponde a ninguna operación de reciclaje o canje de EcoUNAN.',
-        [{ text: 'Intentar de nuevo', onPress: resetScan }]
+        [
+          {
+            text: 'Reintentar escaneo',
+            onPress: resetScan,
+          },
+        ],
+        {
+          cancelable: true,
+          onDismiss: resetScan,
+        }
       );
     } catch (error: any) {
       console.error('[QR Scanner Error]', error);
+      setLoading(false);
       const serverMsg = error?.response?.data?.error;
       Alert.alert(
-        'No se pudo validar',
-        serverMsg || 'No se pudo procesar el código QR. Verifica que sea el código de tu solicitud y que no haya expirado.',
-        [{ text: 'Intentar de nuevo', onPress: resetScan }]
+        'No se pudo procesar',
+        serverMsg || 'No se pudo procesar el código QR. Verifica que sea el código correcto y esté vigente.',
+        [
+          {
+            text: 'Intentar de nuevo',
+            onPress: resetScan,
+          },
+        ],
+        {
+          cancelable: true,
+          onDismiss: resetScan,
+        }
       );
     }
   };
 
   if (hasPermission === null) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Volver"
+            accessibilityRole="button"
+          >
+            <ArrowLeft size={22} color="#0F172A" strokeWidth={2.5} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Preparando cámara</Text>
+        </View>
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { marginTop: 24, alignSelf: 'center' }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryBtnText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -99,8 +153,13 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <ArrowLeft size={20} color="#FFFFFF" />
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Volver"
+            accessibilityRole="button"
+          >
+            <ArrowLeft size={22} color="#0F172A" strokeWidth={2.5} />
           </TouchableOpacity>
           <Text style={styles.title}>Sin acceso a cámara</Text>
         </View>
@@ -108,6 +167,12 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
           <Text style={styles.permissionText}>
             Se requiere permiso para usar la cámara y escanear el código QR del brigadista.
           </Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { marginTop: 20, alignSelf: 'center' }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryBtnText}>Regresar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -115,12 +180,16 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={22} color="#FFFFFF" />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Volver a la pantalla anterior"
+          accessibilityRole="button"
+        >
+          <ArrowLeft size={22} color="#0F172A" strokeWidth={2.5} />
         </TouchableOpacity>
         <View style={styles.headerTextCol}>
           <Text style={styles.title}>
@@ -134,18 +203,18 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
         </View>
       </View>
 
-      {/* Camera Viewfinder */}
       <View style={styles.cameraContainer}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
-          }}
-        />
+        {isFocused && !scanned && (
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr'],
+            }}
+          />
+        )}
 
-        {/* Viewfinder Target Overlay */}
         <View style={styles.overlay}>
           <View style={styles.targetFrame}>
             <View style={[styles.corner, styles.cornerTL]} />
@@ -163,10 +232,16 @@ export const QRScannerScreen = ({ navigation, route }: any) => {
                 : 'Apunta al QR del brigadista'}
             </Text>
           </View>
+
+          {scanned && !loading && (
+            <TouchableOpacity style={styles.retryFloatingBtn} onPress={resetScan}>
+              <RefreshCw size={18} color="#FFFFFF" />
+              <Text style={styles.retryFloatingText}>Escanear de nuevo</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Loading Overlay */}
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#22C55E" />
@@ -198,15 +273,20 @@ const useStyles = (colors: typeof theme.colors) =>
       backgroundColor: '#000000',
     },
     backButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      borderWidth: 1,
-      borderColor: '#334155',
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      borderWidth: 2,
+      borderColor: '#22C55E',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,
-      backgroundColor: '#0F172A',
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.35,
+      shadowRadius: 4,
+      elevation: 6,
     },
     headerTextCol: {
       flex: 1,
@@ -294,6 +374,26 @@ const useStyles = (colors: typeof theme.colors) =>
       fontSize: 13,
       fontWeight: '600',
     },
+    retryFloatingBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: '#22C55E',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 24,
+      marginTop: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    retryFloatingText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
     loadingOverlay: {
       ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(0,0,0,0.85)',
@@ -312,5 +412,18 @@ const useStyles = (colors: typeof theme.colors) =>
       fontSize: 15,
       textAlign: 'center',
       lineHeight: 22,
+    },
+    retryBtn: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    retryBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '700',
     },
   });
