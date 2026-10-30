@@ -78,10 +78,8 @@ export const parseFilters = (query: Record<string, unknown>): ReportFilters => {
 
   const material = asString(query.material);
   if (material && material !== 'all') {
-    if (!MATERIALS.includes(material as MaterialType)) {
-      throw new BadRequestError(`Material inválido. Valores permitidos: ${MATERIALS.join(', ')}.`);
-    }
-    filters.material = material as MaterialType;
+    if (material.length > 50) throw new BadRequestError('Material inválido.');
+    filters.material = material;
   }
 
   const faculty = asString(query.faculty);
