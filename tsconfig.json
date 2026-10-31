@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "extends": "expo/tsconfig.base",
+  "exclude": [
+    "node_modules",
+    "backend",
+    "services",
+    "dashboard",
+    "gestorestudiantes"
+  ]
+}
