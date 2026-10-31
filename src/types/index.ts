@@ -10,6 +10,7 @@ export interface User {
   faculty?: string;
   career?: string;
   ecoPoints: number;
+  lifetimePoints?: number;
   profilePicture?: string;
 }
 

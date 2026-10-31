@@ -1,14 +1,13 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-*/.env
-.env
-
-.claude
-AGENTS.md
-CLAUDE.md
-graphify-out
 
 # dependencies
-*/node_modules/
+node_modules/
+*node_modules/
+graphify-out/
+
+.claude/
+CLAUDE.md
+AGENTS.md
 
 # Expo
 .expo/
@@ -38,7 +37,11 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# Backend
+backend/uploads/
 
 # typescript
 *.tsbuildinfo
@@ -46,3 +49,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Python
+__pycache__/
+*.pyc

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import * as path from 'node:path';
+import path from 'path';
 
 
 dotenv.config({ path: path.join(__dirname, '../.env') });

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../apiClient';
 import { User } from '../../types';
 
@@ -15,7 +16,11 @@ export const userService = {
   getMe: async (): Promise<User> => {
     try {
       const response = await apiClient.get('/users/me');
-      return response.data.data;
+      const liveUser = response.data.data;
+      if (liveUser) {
+        AsyncStorage.setItem('@user_data', JSON.stringify(liveUser)).catch(() => {});
+      }
+      return liveUser;
     } catch (error) {
       console.error('Error fetching current user:', error);
       throw error;
